@@ -14,7 +14,12 @@ Render_GDI::Render_GDI(void* platformData, RenderBackendType backendType) :
 {
 }
 
-Render_GDI::~Render_GDI() = default;
+Render_GDI::~Render_GDI()
+{
+#ifdef DUILIB_BUILD_FOR_WIN
+    DeleteDC();
+#endif
+}
 
 RenderType Render_GDI::GetRenderType() const { return RenderType::kRenderType_GDI; }
 RenderBackendType Render_GDI::GetRenderBackendType() const { return RenderBackendType::kRaster_BackendType; }
@@ -211,8 +216,60 @@ void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPa
 void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPadding) { BitmapAlpha alphaFix((uint8_t*)m_bitmap.GetBits(), GetWidth(), GetHeight(), 4); alphaFix.RestoreAlpha(rcDirty, rcShadowPadding); }
 
 #ifdef DUILIB_BUILD_FOR_WIN
-HDC Render_GDI::GetRenderDC(HWND hWnd) { UNUSED_VARIABLE(hWnd); return nullptr; }
-void Render_GDI::ReleaseRenderDC(HDC hdc) { UNUSED_VARIABLE(hdc); }
+HDC Render_GDI::GetRenderDC(HWND hWnd)
+{
+    if (m_hDC != nullptr) {
+        return m_hDC;
+    }
+    if (IsEmpty()) {
+        return nullptr;
+    }
+    if (hWnd == nullptr) {
+        hWnd = static_cast<HWND>(m_platformData);
+    }
+    HDC hDeskDC = (hWnd != nullptr) ? ::GetDC(hWnd) : nullptr;
+    m_hDC = (hDeskDC != nullptr) ? ::CreateCompatibleDC(hDeskDC) : ::CreateCompatibleDC(nullptr);
+    if ((hWnd != nullptr) && (hDeskDC != nullptr)) {
+        ::ReleaseDC(hWnd, hDeskDC);
+    }
+    if (m_hDC == nullptr) {
+        return nullptr;
+    }
+
+    BITMAPINFO bmi;
+    std::memset(&bmi, 0, sizeof(bmi));
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = GetWidth();
+    bmi.bmiHeader.biHeight = -GetHeight();
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    m_hBitmap = ::CreateDIBSection(m_hDC, &bmi, DIB_RGB_COLORS, &m_pDIBits, nullptr, 0);
+    if ((m_hBitmap == nullptr) || (m_pDIBits == nullptr)) {
+        DeleteDC();
+        return nullptr;
+    }
+    m_hOldObj = ::SelectObject(m_hDC, m_hBitmap);
+    std::memcpy(m_pDIBits, m_bitmap.GetBits(), static_cast<size_t>(GetWidth()) * GetHeight() * sizeof(uint32_t));
+
+    if (!m_clipStack.empty()) {
+        const UiRect& rc = m_clipStack.back();
+        ::IntersectClipRect(m_hDC, rc.left, rc.top, rc.right, rc.bottom);
+    }
+    return m_hDC;
+}
+
+void Render_GDI::ReleaseRenderDC(HDC hdc)
+{
+    if ((m_hDC == nullptr) || (hdc != m_hDC)) {
+        return;
+    }
+    if ((m_pDIBits != nullptr) && (m_bitmap.GetBits() != nullptr) && !IsEmpty()) {
+        std::memcpy(m_bitmap.GetBits(), m_pDIBits, static_cast<size_t>(GetWidth()) * GetHeight() * sizeof(uint32_t));
+    }
+    DeleteDC();
+}
 #endif
 
 void Render_GDI::Clear(const UiColor& uiColor) { FillRect(UiRect(0, 0, GetWidth(), GetHeight()), uiColor, uiColor.GetA()); }
@@ -273,7 +330,43 @@ RenderClipType Render_GDI::GetClipInfo(std::vector<UiRect>& clipRects)
 bool Render_GDI::IsClipEmpty() const { return !m_clipStack.empty() && m_clipStack.back().IsEmpty(); }
 bool Render_GDI::IsEmpty() const { return (GetWidth() <= 0) || (GetHeight() <= 0) || (m_bitmap.GetBits() == nullptr); }
 void Render_GDI::SetRenderDpi(const IRenderDpiPtr& spRenderDpi) { m_spRenderDpi = spRenderDpi; }
-bool Render_GDI::PaintAndSwapBuffers(IRenderPaint* pRenderPaint) { return (pRenderPaint != nullptr) ? pRenderPaint->DoPaint(UiRect(0, 0, GetWidth(), GetHeight())) : false; }
+bool Render_GDI::PaintAndSwapBuffers(IRenderPaint* pRenderPaint)
+{
+    if (pRenderPaint == nullptr) {
+        return false;
+    }
+#ifdef DUILIB_BUILD_FOR_WIN
+    HWND hWnd = static_cast<HWND>(m_platformData);
+    if ((hWnd != nullptr) && ::IsWindow(hWnd)) {
+        RECT rectUpdate = { 0, };
+        if (!::GetUpdateRect(hWnd, &rectUpdate, FALSE)) {
+            return false;
+        }
+        const uint8_t nLayeredWindowAlpha = pRenderPaint->GetLayeredWindowAlpha();
+
+        bool bRet = false;
+        PAINTSTRUCT ps = { 0, };
+        HDC hPaintDC = ::BeginPaint(hWnd, &ps);
+        UiRect rcPaint(ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
+        if (!rcPaint.IsEmpty() && (hPaintDC != nullptr)) {
+            bRet = pRenderPaint->DoPaint(rcPaint);
+            SwapPaintBuffers(hPaintDC, rcPaint, nLayeredWindowAlpha);
+            ::EndPaint(hWnd, &ps);
+        }
+        else {
+            ::EndPaint(hWnd, &ps);
+            UiRect rcUpdate(rectUpdate.left, rectUpdate.top, rectUpdate.right, rectUpdate.bottom);
+            bRet = pRenderPaint->DoPaint(rcUpdate);
+            hPaintDC = ::GetDC(hWnd);
+            SwapPaintBuffers(hPaintDC, rcUpdate, nLayeredWindowAlpha);
+            ::ReleaseDC(hWnd, hPaintDC);
+            ::ValidateRect(hWnd, &rectUpdate);
+        }
+        return bRet;
+    }
+#endif
+    return pRenderPaint->DoPaint(UiRect(0, 0, GetWidth(), GetHeight()));
+}
 bool Render_GDI::SetWindowRoundRectRgn(const UiRect& rcWnd, float rx, float ry, bool bRedraw) { UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(rx); UNUSED_VARIABLE(ry); UNUSED_VARIABLE(bRedraw); return false; }
 bool Render_GDI::SetWindowRectRgn(const UiRect& rcWnd, bool bRedraw) { UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(bRedraw); return false; }
 void Render_GDI::ClearWindowRgn(bool bRedraw) { UNUSED_VARIABLE(bRedraw); }
@@ -293,5 +386,67 @@ const uint32_t* Render_GDI::Pixel(int32_t x, int32_t y) const
     }
     return m_bitmap.GetBits() + static_cast<size_t>(y) * GetWidth() + x;
 }
+
+#ifdef DUILIB_BUILD_FOR_WIN
+bool Render_GDI::SwapPaintBuffers(HDC hPaintDC, const UiRect& rcPaint, uint8_t nLayeredWindowAlpha)
+{
+    if ((hPaintDC == nullptr) || rcPaint.IsEmpty()) {
+        return false;
+    }
+    HWND hWnd = static_cast<HWND>(m_platformData);
+    if ((hWnd == nullptr) || !::IsWindow(hWnd)) {
+        return false;
+    }
+    HDC hRenderDC = GetRenderDC(hWnd);
+    if (hRenderDC == nullptr) {
+        return false;
+    }
+
+    bool bPainted = false;
+    if (::GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_LAYERED) {
+        COLORREF crKey = 0;
+        BYTE bAlpha = 255;
+        DWORD dwFlags = 0;
+        bool bLayeredWindowAttributes = ::GetLayeredWindowAttributes(hWnd, &crKey, &bAlpha, &dwFlags) != FALSE;
+        if (bLayeredWindowAttributes && ((bAlpha == 255) || (crKey == 0))) {
+            bLayeredWindowAttributes = false;
+        }
+        if (!bLayeredWindowAttributes) {
+            RECT rcWindow = { 0, 0, 0, 0 };
+            RECT rcClient = { 0, 0, 0, 0 };
+            ::GetWindowRect(hWnd, &rcWindow);
+            ::GetClientRect(hWnd, &rcClient);
+            POINT pt = { rcWindow.left, rcWindow.top };
+            SIZE szWindow = { rcClient.right - rcClient.left, rcClient.bottom - rcClient.top };
+            POINT ptSrc = { 0, 0 };
+            BLENDFUNCTION bf = { AC_SRC_OVER, 0, nLayeredWindowAlpha, AC_SRC_ALPHA };
+            bPainted = ::UpdateLayeredWindow(hWnd, nullptr, &pt, &szWindow, hRenderDC, &ptSrc, 0, &bf, ULW_ALPHA) != FALSE;
+        }
+    }
+    if (!bPainted) {
+        bPainted = ::BitBlt(hPaintDC, rcPaint.left, rcPaint.top, rcPaint.Width(), rcPaint.Height(),
+                            hRenderDC, rcPaint.left, rcPaint.top, SRCCOPY) != FALSE;
+    }
+    ReleaseRenderDC(hRenderDC);
+    return bPainted;
+}
+
+void Render_GDI::DeleteDC()
+{
+    if ((m_hDC != nullptr) && (m_hOldObj != nullptr)) {
+        ::SelectObject(m_hDC, m_hOldObj);
+    }
+    m_hOldObj = nullptr;
+    if (m_hBitmap != nullptr) {
+        ::DeleteObject(m_hBitmap);
+        m_hBitmap = nullptr;
+    }
+    m_pDIBits = nullptr;
+    if (m_hDC != nullptr) {
+        ::DeleteDC(m_hDC);
+        m_hDC = nullptr;
+    }
+}
+#endif
 
 } // namespace ui
