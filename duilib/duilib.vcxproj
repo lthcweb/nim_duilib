@@ -635,11 +635,6 @@
     <ClCompile Include="WebView2\WebView2Manager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\skia\tools\ganesh\gl\win\SkWGL.h" />
-    <ClInclude Include="..\..\skia\tools\window\DisplayParams.h" />
-    <ClInclude Include="..\..\skia\tools\window\GLWindowContext.h" />
-    <ClInclude Include="..\..\skia\tools\window\RasterWindowContext.h" />
-    <ClInclude Include="..\..\skia\tools\window\WindowContext.h" />
     <ClInclude Include="Animation\AnimationManager.h" />
     <ClInclude Include="Animation\AnimationPlayer.h" />
     <ClInclude Include="Box\GridBox.h" />

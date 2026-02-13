@@ -1340,18 +1340,6 @@
     <ClInclude Include="Utils\FilePathUtil.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\DisplayParams.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\WindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\GLWindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\RasterWindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
     <ClInclude Include="RenderSkia\Render_Skia_SDL.h">
       <Filter>RenderSkia\SDL</Filter>
     </ClInclude>
@@ -1714,9 +1702,6 @@
     </ClInclude>
     <ClInclude Include="Image\APngDecoder.h">
       <Filter>Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\ganesh\gl\win\SkWGL.h">
-      <Filter>RenderSkia\Skia</Filter>
     </ClInclude>
     <ClInclude Include="Image\Image_PAG.h">
       <Filter>Image</Filter>
