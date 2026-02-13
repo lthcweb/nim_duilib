@@ -2,6 +2,7 @@
 
 #include "duilib/Render/BitmapAlpha.h"
 #include "duilib/RenderGDI/DrawGDIImage.h"
+#include "duilib/RenderGDI/Pen_GDI.h"
 
 #include <algorithm>
 #include <cstring>
@@ -74,6 +75,48 @@ static HFONT CreateGDIFont(const IFont* pFont)
                         CLEARTYPE_QUALITY,
                         DEFAULT_PITCH | FF_DONTCARE,
                         pFont->FontName().c_str());
+}
+
+
+static uint32_t BlendPixel(uint32_t dst, uint32_t src, uint8_t globalAlpha)
+{
+    const uint32_t srcA = ((src >> 24) & 0xFF) * globalAlpha / 255;
+    const uint32_t invA = 255 - srcA;
+
+    const uint32_t srcR = (src >> 16) & 0xFF;
+    const uint32_t srcG = (src >> 8) & 0xFF;
+    const uint32_t srcB = src & 0xFF;
+
+    const uint32_t dstA = (dst >> 24) & 0xFF;
+    const uint32_t dstR = (dst >> 16) & 0xFF;
+    const uint32_t dstG = (dst >> 8) & 0xFF;
+    const uint32_t dstB = dst & 0xFF;
+
+    const uint32_t outA = srcA + (dstA * invA + 127) / 255;
+    const uint32_t outR = (srcR * srcA + dstR * invA + 127) / 255;
+    const uint32_t outG = (srcG * srcA + dstG * invA + 127) / 255;
+    const uint32_t outB = (srcB * srcA + dstB * invA + 127) / 255;
+    return UiColor::MakeARGB((uint8_t)outA, (uint8_t)outR, (uint8_t)outG, (uint8_t)outB);
+}
+#endif
+
+#ifndef DUILIB_BUILD_FOR_WIN
+static uint32_t BlendPixel(uint32_t dst, uint32_t src, uint8_t globalAlpha)
+{
+    const uint32_t srcA = ((src >> 24) & 0xFF) * globalAlpha / 255;
+    const uint32_t invA = 255 - srcA;
+    const uint32_t srcR = (src >> 16) & 0xFF;
+    const uint32_t srcG = (src >> 8) & 0xFF;
+    const uint32_t srcB = src & 0xFF;
+    const uint32_t dstA = (dst >> 24) & 0xFF;
+    const uint32_t dstR = (dst >> 16) & 0xFF;
+    const uint32_t dstG = (dst >> 8) & 0xFF;
+    const uint32_t dstB = dst & 0xFF;
+    const uint32_t outA = srcA + (dstA * invA + 127) / 255;
+    const uint32_t outR = (srcR * srcA + dstR * invA + 127) / 255;
+    const uint32_t outG = (srcG * srcA + dstG * invA + 127) / 255;
+    const uint32_t outB = (srcB * srcA + dstB * invA + 127) / 255;
+    return UiColor::MakeARGB((uint8_t)outA, (uint8_t)outR, (uint8_t)outG, (uint8_t)outB);
 }
 #endif
 
@@ -196,26 +239,7 @@ bool Render_GDI::AlphaBlend(int32_t xDest, int32_t yDest, int32_t widthDest, int
             if ((pSrcPixel == nullptr) || (pDstPixel == nullptr)) {
                 continue;
             }
-            const uint32_t src = *pSrcPixel;
-            const uint32_t dst = *pDstPixel;
-
-            const uint32_t srcA = ((src >> 24) & 0xFF) * alpha / 255;
-            const uint32_t invA = 255 - srcA;
-
-            const uint32_t srcR = (src >> 16) & 0xFF;
-            const uint32_t srcG = (src >> 8) & 0xFF;
-            const uint32_t srcB = src & 0xFF;
-
-            const uint32_t dstA = (dst >> 24) & 0xFF;
-            const uint32_t dstR = (dst >> 16) & 0xFF;
-            const uint32_t dstG = (dst >> 8) & 0xFF;
-            const uint32_t dstB = dst & 0xFF;
-
-            const uint32_t outA = srcA + (dstA * invA + 127) / 255;
-            const uint32_t outR = (srcR * srcA + dstR * invA + 127) / 255;
-            const uint32_t outG = (srcG * srcA + dstG * invA + 127) / 255;
-            const uint32_t outB = (srcB * srcA + dstB * invA + 127) / 255;
-            *pDstPixel = UiColor::MakeARGB((uint8_t)outA, (uint8_t)outR, (uint8_t)outG, (uint8_t)outB);
+            *pDstPixel = BlendPixel(*pDstPixel, *pSrcPixel, alpha);
         }
     }
     return true;
@@ -311,14 +335,64 @@ void Render_GDI::FillRoundRect(const UiRect& rc, float, float, UiColor dwColor, 
 void Render_GDI::FillRoundRect(const UiRectF& rc, float, float, UiColor dwColor, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
 void Render_GDI::FillRoundRect(const UiRect& rc, float, float, UiColor dwColor, UiColor, int8_t, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
 void Render_GDI::FillRoundRect(const UiRectF& rc, float, float, UiColor dwColor, UiColor, int8_t, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
-void Render_GDI::DrawArc(const UiRect&, float, float, bool, const IPen*, UiColor*, const UiRect*) {}
-void Render_GDI::DrawCircle(const UiPoint&, int32_t, UiColor, int32_t) {}
-void Render_GDI::DrawCircle(const UiPoint&, int32_t, UiColor, float) {}
-void Render_GDI::DrawCircle(const UiPoint&, int32_t, IPen*) {}
-void Render_GDI::FillCircle(const UiPoint&, int32_t, UiColor, uint8_t) {}
-void Render_GDI::DrawPath(const IPath*, const IPen*) {}
-void Render_GDI::FillPath(const IPath*, const IBrush*) {}
-void Render_GDI::FillPath(const IPath*, const UiRect&, UiColor, UiColor, int8_t) {}
+void Render_GDI::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, bool useCenter, const IPen* pen, UiColor*, const UiRect*)
+{
+    if ((pen == nullptr) || rc.IsEmpty()) {
+        return;
+    }
+    const float rx = rc.Width() / 2.0f;
+    const float ry = rc.Height() / 2.0f;
+    const float cx = rc.left + rx;
+    const float cy = rc.top + ry;
+    const int steps = std::max(12, static_cast<int>(std::fabs(sweepAngle) / 6.0f));
+    UiPointF prev;
+    bool hasPrev = false;
+    for (int i = 0; i <= steps; ++i) {
+        float a = (startAngle + sweepAngle * i / static_cast<float>(steps)) * 3.1415926f / 180.0f;
+        UiPointF pt(cx + std::cos(a) * rx, cy + std::sin(a) * ry);
+        if (hasPrev) {
+            DrawLine(prev, pt, const_cast<IPen*>(pen));
+        }
+        else if (useCenter) {
+            DrawLine(UiPointF(cx, cy), pt, const_cast<IPen*>(pen));
+        }
+        prev = pt;
+        hasPrev = true;
+    }
+    if (useCenter && hasPrev) {
+        DrawLine(prev, UiPointF(cx, cy), const_cast<IPen*>(pen));
+    }
+}
+void Render_GDI::DrawCircle(const UiPoint& centerPt, int32_t radius, UiColor penColor, int32_t nWidth) { DrawCircle(centerPt, radius, penColor, static_cast<float>(nWidth)); }
+void Render_GDI::DrawCircle(const UiPoint& centerPt, int32_t radius, UiColor penColor, float fWidth)
+{
+    if (radius <= 0) {
+        return;
+    }
+    UiRect rc(centerPt.x - radius, centerPt.y - radius, centerPt.x + radius, centerPt.y + radius);
+    Pen_GDI pen(penColor, fWidth);
+    DrawArc(rc, 0, 360, false, &pen, nullptr, nullptr);
+}
+void Render_GDI::DrawCircle(const UiPoint& centerPt, int32_t radius, IPen* pen) { if (pen != nullptr) DrawCircle(centerPt, radius, pen->GetColor(), pen->GetWidth()); }
+void Render_GDI::FillCircle(const UiPoint& centerPt, int32_t radius, UiColor dwColor, uint8_t uFade)
+{
+    if (radius <= 0) {
+        return;
+    }
+    const uint32_t pixel = UiColor::MakeARGB(static_cast<uint8_t>(dwColor.GetA() * uFade / 255), dwColor.GetR(), dwColor.GetG(), dwColor.GetB());
+    for (int y = -radius; y <= radius; ++y) {
+        const int xMax = static_cast<int>(std::sqrt(static_cast<double>(radius * radius - y * y)));
+        for (int x = -xMax; x <= xMax; ++x) {
+            uint32_t* pDst = Pixel(centerPt.x + x, centerPt.y + y);
+            if (pDst != nullptr) {
+                *pDst = pixel;
+            }
+        }
+    }
+}
+void Render_GDI::DrawPath(const IPath* path, const IPen* pen) { if ((path != nullptr) && (pen != nullptr)) DrawRect(const_cast<IPath*>(path)->GetBounds(pen), const_cast<IPen*>(pen)); }
+void Render_GDI::FillPath(const IPath* path, const IBrush* brush) { if ((path != nullptr) && (brush != nullptr)) FillRect(const_cast<IPath*>(path)->GetBounds(nullptr), brush->GetColor()); }
+void Render_GDI::FillPath(const IPath* path, const UiRect&, UiColor dwColor, UiColor, int8_t) { if (path != nullptr) FillRect(const_cast<IPath*>(path)->GetBounds(nullptr), dwColor); }
 UiRect Render_GDI::MeasureString(const DString& strText, const MeasureStringParam& measureParam)
 {
     if (strText.empty()) {
@@ -366,11 +440,63 @@ void Render_GDI::DrawString(const DString& strText, const DrawStringParam& drawP
         if (hFont != nullptr) {
             hOldFont = ::SelectObject(hdc, hFont);
         }
-        ::SetBkMode(hdc, TRANSPARENT);
-        ::SetTextColor(hdc, RGB(drawParam.dwTextColor.GetR(), drawParam.dwTextColor.GetG(), drawParam.dwTextColor.GetB()));
         RECT rc = { drawParam.textRect.left, drawParam.textRect.top, drawParam.textRect.right, drawParam.textRect.bottom };
         uint32_t flags = ToDrawTextFlags(drawParam.uFormat);
-        ::DrawText(hdc, strText.c_str(), static_cast<int>(strText.size()), &rc, flags);
+        const uint8_t fade = static_cast<uint8_t>(drawParam.dwTextColor.GetA() * drawParam.uFade / 255);
+        if (fade >= 255) {
+            ::SetBkMode(hdc, TRANSPARENT);
+            ::SetTextColor(hdc, RGB(drawParam.dwTextColor.GetR(), drawParam.dwTextColor.GetG(), drawParam.dwTextColor.GetB()));
+            ::DrawText(hdc, strText.c_str(), static_cast<int>(strText.size()), &rc, flags);
+        }
+        else {
+            const int width = std::max(1, drawParam.textRect.Width());
+            const int height = std::max(1, drawParam.textRect.Height());
+            HDC memDC = ::CreateCompatibleDC(hdc);
+            if (memDC != nullptr) {
+                BITMAPINFO bmi;
+                std::memset(&bmi, 0, sizeof(bmi));
+                bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                bmi.bmiHeader.biWidth = width;
+                bmi.bmiHeader.biHeight = -height;
+                bmi.bmiHeader.biPlanes = 1;
+                bmi.bmiHeader.biBitCount = 32;
+                bmi.bmiHeader.biCompression = BI_RGB;
+                void* bits = nullptr;
+                HBITMAP bmp = ::CreateDIBSection(memDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+                if ((bmp != nullptr) && (bits != nullptr)) {
+                    HGDIOBJ oldBmp = ::SelectObject(memDC, bmp);
+                    if (hFont != nullptr) {
+                        ::SelectObject(memDC, hFont);
+                    }
+                    std::memset(bits, 0, static_cast<size_t>(width) * height * sizeof(uint32_t));
+                    ::SetBkMode(memDC, TRANSPARENT);
+                    ::SetTextColor(memDC, RGB(drawParam.dwTextColor.GetR(), drawParam.dwTextColor.GetG(), drawParam.dwTextColor.GetB()));
+                    RECT localRc = { 0, 0, width, height };
+                    ::DrawText(memDC, strText.c_str(), static_cast<int>(strText.size()), &localRc, flags);
+
+                    uint32_t* srcBits = static_cast<uint32_t*>(bits);
+                    for (int y = 0; y < height; ++y) {
+                        for (int x = 0; x < width; ++x) {
+                            const uint32_t src = srcBits[static_cast<size_t>(y) * width + x];
+                            if ((src & 0x00FFFFFF) == 0) {
+                                continue;
+                            }
+                            uint32_t* pDst = Pixel(drawParam.textRect.left + x, drawParam.textRect.top + y);
+                            if (pDst != nullptr) {
+                                const uint32_t srcPixel = UiColor::MakeARGB(255,
+                                                                             drawParam.dwTextColor.GetR(),
+                                                                             drawParam.dwTextColor.GetG(),
+                                                                             drawParam.dwTextColor.GetB());
+                                *pDst = BlendPixel(*pDst, srcPixel, fade);
+                            }
+                        }
+                    }
+                    ::SelectObject(memDC, oldBmp);
+                    ::DeleteObject(bmp);
+                }
+                ::DeleteDC(memDC);
+            }
+        }
         if (hOldFont != nullptr) {
             ::SelectObject(hdc, hOldFont);
         }
@@ -391,7 +517,14 @@ bool Render_GDI::IsValidDrawRichTextCache(const UiRect&, const std::vector<RichT
 bool Render_GDI::UpdateDrawRichTextCache(std::shared_ptr<DrawRichTextCache>&, const std::shared_ptr<DrawRichTextCache>&, std::vector<RichTextData>&, size_t, const std::vector<size_t>&, size_t, const std::vector<size_t>&, size_t, const std::vector<int32_t>&) { return false; }
 bool Render_GDI::IsDrawRichTextCacheEqual(const DrawRichTextCache&, const DrawRichTextCache&) const { return false; }
 void Render_GDI::DrawRichTextCacheData(const std::shared_ptr<DrawRichTextCache>&, const UiRect&, const UiSize&, const std::vector<int32_t>&, uint8_t, std::vector<std::vector<UiRect>>*) {}
-void Render_GDI::DrawBoxShadow(const UiRect&, const UiSize&, const UiPoint&, int32_t, int32_t, UiColor) {}
+void Render_GDI::DrawBoxShadow(const UiRect& rc, const UiSize&, const UiPoint& cpOffset, int32_t nBlurRadius, int32_t nSpreadRadius, UiColor dwColor)
+{
+    UiRect shadowRect = rc;
+    const int expand = std::max(0, nSpreadRadius) + std::max(0, nBlurRadius);
+    shadowRect.Deflate(-expand, -expand, -expand, -expand);
+    shadowRect.Offset(cpOffset.x, cpOffset.y);
+    FillRect(shadowRect, dwColor, static_cast<uint8_t>(dwColor.GetA() / 2));
+}
 
 IBitmap* Render_GDI::MakeImageSnapshot() { return m_bitmap.Clone(); }
 void Render_GDI::ClearAlpha(const UiRect& rcDirty, uint8_t alpha) { BitmapAlpha alphaFix((uint8_t*)m_bitmap.GetBits(), GetWidth(), GetHeight(), 4); alphaFix.ClearAlpha(rcDirty, alpha); }
@@ -486,7 +619,6 @@ bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect&
 
 bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect& rc, const UiRect& rcPaint)
 {
-    UNUSED_VARIABLE(rcPaint);
     if ((srcPixels == nullptr) || rc.IsEmpty()) {
         return false;
     }
@@ -494,8 +626,17 @@ bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect&
     if (srcPixelsLen < need) {
         return false;
     }
-    for (int y = 0; y < rc.Height(); ++y) {
-        std::memcpy(Pixel(rc.left, rc.top + y), static_cast<uint8_t*>(srcPixels) + static_cast<size_t>(y) * rc.Width() * sizeof(uint32_t), static_cast<size_t>(rc.Width()) * sizeof(uint32_t));
+    UiRect paintRect = rc;
+    paintRect.Intersect(rcPaint);
+    if (paintRect.IsEmpty()) {
+        return true;
+    }
+    for (int y = paintRect.top; y < paintRect.bottom; ++y) {
+        const int srcY = y - rc.top;
+        const int srcX = paintRect.left - rc.left;
+        std::memcpy(Pixel(paintRect.left, y),
+                    static_cast<uint8_t*>(srcPixels) + (static_cast<size_t>(srcY) * rc.Width() + srcX) * sizeof(uint32_t),
+                    static_cast<size_t>(paintRect.Width()) * sizeof(uint32_t));
     }
     return true;
 }
@@ -550,9 +691,40 @@ bool Render_GDI::PaintAndSwapBuffers(IRenderPaint* pRenderPaint)
 #endif
     return pRenderPaint->DoPaint(UiRect(0, 0, GetWidth(), GetHeight()));
 }
-bool Render_GDI::SetWindowRoundRectRgn(const UiRect& rcWnd, float rx, float ry, bool bRedraw) { UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(rx); UNUSED_VARIABLE(ry); UNUSED_VARIABLE(bRedraw); return false; }
-bool Render_GDI::SetWindowRectRgn(const UiRect& rcWnd, bool bRedraw) { UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(bRedraw); return false; }
-void Render_GDI::ClearWindowRgn(bool bRedraw) { UNUSED_VARIABLE(bRedraw); }
+bool Render_GDI::SetWindowRoundRectRgn(const UiRect& rcWnd, float rx, float ry, bool bRedraw) {
+#ifdef DUILIB_BUILD_FOR_WIN
+    HWND hWnd = static_cast<HWND>(m_platformData);
+    if ((hWnd == nullptr) || !::IsWindow(hWnd)) {
+        return false;
+    }
+    HRGN hRgn = ::CreateRoundRectRgn(0, 0, rcWnd.Width(), rcWnd.Height(), static_cast<int>(rx * 2), static_cast<int>(ry * 2));
+    return ::SetWindowRgn(hWnd, hRgn, bRedraw ? TRUE : FALSE) != FALSE;
+#else
+    UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(rx); UNUSED_VARIABLE(ry); UNUSED_VARIABLE(bRedraw); return false;
+#endif
+}
+bool Render_GDI::SetWindowRectRgn(const UiRect& rcWnd, bool bRedraw) {
+#ifdef DUILIB_BUILD_FOR_WIN
+    HWND hWnd = static_cast<HWND>(m_platformData);
+    if ((hWnd == nullptr) || !::IsWindow(hWnd)) {
+        return false;
+    }
+    HRGN hRgn = ::CreateRectRgn(0, 0, rcWnd.Width(), rcWnd.Height());
+    return ::SetWindowRgn(hWnd, hRgn, bRedraw ? TRUE : FALSE) != FALSE;
+#else
+    UNUSED_VARIABLE(rcWnd); UNUSED_VARIABLE(bRedraw); return false;
+#endif
+}
+void Render_GDI::ClearWindowRgn(bool bRedraw) {
+#ifdef DUILIB_BUILD_FOR_WIN
+    HWND hWnd = static_cast<HWND>(m_platformData);
+    if ((hWnd != nullptr) && ::IsWindow(hWnd)) {
+        ::SetWindowRgn(hWnd, nullptr, bRedraw ? TRUE : FALSE);
+    }
+#else
+    UNUSED_VARIABLE(bRedraw);
+#endif
+}
 
 uint32_t* Render_GDI::Pixel(int32_t x, int32_t y)
 {
