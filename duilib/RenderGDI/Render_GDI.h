@@ -2,8 +2,8 @@
 #define UI_RENDER_GDI_RENDER_H_
 
 #include "duilib/Render/IRender.h"
+#include "duilib/RenderGDI/Bitmap_GDI.h"
 #include "duilib/RenderGDI/GdiRenderHelper.h"
-#include "duilib/RenderGDI/GdiObjects.h"
 
 namespace ui {
 
