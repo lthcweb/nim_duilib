@@ -102,7 +102,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_RENDER_GDI;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -129,7 +129,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_RENDER_SKIA;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -156,7 +156,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <PreprocessorDefinitions>USE_RENDER_GDI;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -183,7 +183,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <PreprocessorDefinitions>USE_RENDER_SKIA;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -208,7 +208,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\skia\tools\ganesh\gl\win\SkWGL_win.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
@@ -216,7 +216,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\skia\tools\window\GLWindowContext.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
@@ -224,7 +224,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\skia\tools\window\WindowContext.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
@@ -407,126 +407,126 @@
     <ClCompile Include="Layout\VLayout.cpp" />
     <ClCompile Include="Layout\VTileLayout.cpp" />
     <ClCompile Include="RenderSkia\Bitmap_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Brush_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\DrawRichText.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\DrawSkiaImage.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\FontMgr_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Font_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\HorizontalDrawText.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Matrix_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Path_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Pen_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\RenderFactory_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Render_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Brush_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\DrawGDIImage.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Font_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Path_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Pen_GDI.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia_SDL.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia_Windows.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\SkGLWindowContext_Windows.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\SkRasterWindowContext_SDL.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\SkRasterWindowContext_Windows.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\SkTextBox.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\SkUtils.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\VerticalDrawText.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="RenderSkia\WindowRgn_Windows.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_GDI'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
 
 </ClCompile>
     <ClCompile Include="Render\AutoClip.cpp" />
     <ClCompile Include="Render\BitmapAlpha.cpp" />
     <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\GdiObjects.cpp">
-      <ExcludedFromBuild Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="third_party\convert_utf\ConvertUTF.cpp" />
     <ClCompile Include="third_party\giflib\dgif_lib.c">

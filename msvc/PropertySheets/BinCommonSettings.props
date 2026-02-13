@@ -24,7 +24,7 @@
 
     <PropertyGroup Label="Globals">
         <UseRenderSkia>false</UseRenderSkia>
-        <UseRenderSkia Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</UseRenderSkia>
+        <UseRenderSkia Condition="'$(RenderBackend)'=='SKIA'">true</UseRenderSkia>
         <RenderSkiaLibDir Condition="'$(UseRenderSkia)'=='true'">$(SkiaLibDir)</RenderSkiaLibDir>
         <RenderSkiaLibs Condition="'$(UseRenderSkia)'=='true'">$(SkiaLibs)</RenderSkiaLibs>
     </PropertyGroup>
