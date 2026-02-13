@@ -17,10 +17,10 @@ Image_LOTTIE::Image_LOTTIE() : m_impl(std::make_unique<TImpl>()) {}
 Image_LOTTIE::~Image_LOTTIE() = default;
 
 bool Image_LOTTIE::LoadImageFile(std::vector<uint8_t>& fileData,
-                                 const FilePath& imageFilePath,
-                                 float fImageSizeScale,
-                                 const UiSize& rcMaxDestRectSize,
-                                 bool bAssertEnabled)
+    const FilePath& imageFilePath,
+    float fImageSizeScale,
+    const UiSize& rcMaxDestRectSize,
+    bool bAssertEnabled)
 {
     UNUSED_VARIABLE(fileData);
     UNUSED_VARIABLE(imageFilePath);
@@ -59,13 +59,7 @@ bool Image_LOTTIE::ReadFrameData(int32_t, const UiSize&, AnimationFrame* pAnimat
 #include "duilib/RenderSkia/FontMgr_Skia.h"
 
 #include "duilib/RenderSkia/SkiaHeaderBegin.h"
-#if __has_include("modules/skottie/include/Skottie.h")
-    #include "modules/skottie/include/Skottie.h"
-#elif __has_include("skottie/include/Skottie.h")
-    #include "skottie/include/Skottie.h"
-#else
-    #error "Skottie.h not found. Please add Skia root or Skia modules include path."
-#endif
+#include "modules/skottie/include/Skottie.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFontMgr.h"
@@ -74,11 +68,11 @@ bool Image_LOTTIE::ReadFrameData(int32_t, const UiSize&, AnimationFrame* pAnimat
 namespace ui
 {
 //解码LOTTIE图片数据(解出一帧图片, 不包含图片播放时间这个字段)
-static bool DecodeImage_LOTTIE(sk_sp<skottie::Animation>& pSkAnimation,                               
-                               uint32_t nImageWidth,
-                               uint32_t nImageHeight,
-                               int32_t nFrame,
-                               AnimationFramePtr& frame)
+static bool DecodeImage_LOTTIE(sk_sp<skottie::Animation>& pSkAnimation,
+    uint32_t nImageWidth,
+    uint32_t nImageHeight,
+    int32_t nFrame,
+    AnimationFramePtr& frame)
 {
     ASSERT(pSkAnimation != nullptr);
     if (pSkAnimation == nullptr) {
@@ -169,10 +163,10 @@ Image_LOTTIE::~Image_LOTTIE()
 }
 
 bool Image_LOTTIE::LoadImageFile(std::vector<uint8_t>& fileData,
-                                 const FilePath& imageFilePath,
-                                 float fImageSizeScale,
-                                 const UiSize& rcMaxDestRectSize,
-                                 bool bAssertEnabled)
+    const FilePath& imageFilePath,
+    float fImageSizeScale,
+    const UiSize& rcMaxDestRectSize,
+    bool bAssertEnabled)
 {
     ASSERT(!fileData.empty() || !imageFilePath.IsEmpty());
     if (fileData.empty() && imageFilePath.IsEmpty()) {
@@ -347,8 +341,8 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
     }
     if ((szDestRectSize.cx > 0) || (szDestRectSize.cy > 0)) {
         bool bScaled = false;
-        float fScale = 1.0f;        
-        if ((szDestRectSize.cx > 0) && (szDestRectSize.cy > 0)) {            
+        float fScale = 1.0f;
+        if ((szDestRectSize.cx > 0) && (szDestRectSize.cy > 0)) {
             if ((szDestRectSize.cx < (int32_t)nImageWidth) && (szDestRectSize.cy < (int32_t)nImageHeight)) {
                 float fScaleX = static_cast<float>(szDestRectSize.cx) / nImageWidth;
                 float fScaleY = static_cast<float>(szDestRectSize.cy) / nImageHeight;
@@ -383,14 +377,14 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
     pAnimationFrame->m_bDataError = true;
     AnimationFramePtr frame;
     if (m_impl->m_pSkAnimation != nullptr) {
-        if(DecodeImage_LOTTIE(m_impl->m_pSkAnimation,
-                              nImageWidth,
-                              nImageHeight,
-                              nFrameIndex,
-                              frame)) {
+        if (DecodeImage_LOTTIE(m_impl->m_pSkAnimation,
+            nImageWidth,
+            nImageHeight,
+            nFrameIndex,
+            frame)) {
             if (frame != nullptr) {
                 *pAnimationFrame = *frame;
-                pAnimationFrame->SetDelayMs(GetFrameDelayMs(nFrameIndex));                
+                pAnimationFrame->SetDelayMs(GetFrameDelayMs(nFrameIndex));
                 pAnimationFrame->m_bDataError = false; //确认成功，标记无错误
             }
         }

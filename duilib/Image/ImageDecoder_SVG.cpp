@@ -9,21 +9,21 @@
 #include <string_view>
 
 #if defined(__GNUC__) && !defined(__clang__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 #pragma warning (push)
 #pragma warning (disable: 4456 4244 4702)
-    #define NANOSVG_IMPLEMENTATION
-    #define NANOSVG_ALL_COLOR_KEYWORDS
-    #include "duilib/third_party/svg/nanosvg.h"
-    #define NANOSVGRAST_IMPLEMENTATION
-    #include "duilib/third_party/svg/nanosvgrast.h"
+#define NANOSVG_IMPLEMENTATION
+#define NANOSVG_ALL_COLOR_KEYWORDS
+#include "duilib/third_party/svg/nanosvg.h"
+#define NANOSVGRAST_IMPLEMENTATION
+#include "duilib/third_party/svg/nanosvgrast.h"
 #pragma warning (pop)
 
 #if defined(__GNUC__) && !defined(__clang__)
-    #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 
 #if !defined(USE_RENDER_SKIA)
@@ -41,8 +41,12 @@ DString ImageDecoder_SVG::GetFormatName() const
 
 bool ImageDecoder_SVG::CanDecode(const DString& imageFilePath) const
 {
-    DString fileExt = FilePathUtil::GetFileExt(imageFilePath);
-    return StringUtil::CompareNoCase(fileExt, _T("svg")) == 0;
+    DString fileExt = FilePathUtil::GetFileExtension(imageFilePath);
+    StringUtil::MakeUpperString(fileExt);
+    if (fileExt == _T("SVG")) {
+        return true;
+    }
+    return false;
 }
 
 bool ImageDecoder_SVG::CanDecode(const uint8_t* data, size_t dataLen) const
@@ -52,7 +56,7 @@ bool ImageDecoder_SVG::CanDecode(const uint8_t* data, size_t dataLen) const
     }
     std::string_view text(reinterpret_cast<const char*>(data), dataLen);
     return (text.find("<svg") != std::string_view::npos) ||
-           (text.find("<?xml") != std::string_view::npos);
+        (text.find("<?xml") != std::string_view::npos);
 }
 
 std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& decodeParam)
@@ -67,15 +71,8 @@ std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& 
 #else
 
 #include "duilib/RenderSkia/SkiaHeaderBegin.h"
-#if __has_include("modules/svg/include/SkSVGDOM.h")
-    #include "modules/svg/include/SkSVGDOM.h"
-    #include "modules/svg/include/SkSVGRenderContext.h"
-#elif __has_include("svg/include/SkSVGDOM.h")
-    #include "svg/include/SkSVGDOM.h"
-    #include "svg/include/SkSVGRenderContext.h"
-#else
-    #error "SkSVGDOM.h not found. Please add Skia root or Skia modules include path."
-#endif
+#include "modules/svg/include/SkSVGDOM.h"
+#include "modules/svg/include/SkSVGRenderContext.h"
 #include "include/core/SkStream.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -87,49 +84,49 @@ namespace ui
 */
 namespace NanoSvgDecoder
 {
-    class SvgDeleter
-    {
-    public:
-        inline void operator()(NSVGimage* x) const { nsvgDelete(x); }
-    };
+class SvgDeleter
+{
+public:
+    inline void operator()(NSVGimage* x) const { nsvgDelete(x); }
+};
 
-    class RasterizerDeleter
-    {
-    public:
-        inline void operator()(NSVGrasterizer* x) const { nsvgDeleteRasterizer(x); }
-    };
+class RasterizerDeleter
+{
+public:
+    inline void operator()(NSVGrasterizer* x) const { nsvgDeleteRasterizer(x); }
+};
 
-    /** 获取Svg图片的宽度和高度(仅解析xml，无渲染，速度快)
-    */
-    bool ImageSizeFromMemory(const std::vector<uint8_t>& data, int32_t& nSvgImageWidth, int32_t& nSvgImageHeight)
-    {
-        std::vector<uint8_t> fileData = data;//此处需要复制数据，因为在解析的过程中，会破坏原来的数据
-        ASSERT(!fileData.empty());
-        if (fileData.empty()) {
-            return false;
-        }
-        bool hasAppended = false;
-        if (fileData.back() != '\0') {
-            //确保是含尾0的字符串，避免越界访问内存
-            fileData.push_back('\0');
-            hasAppended = true;
-        }
-        char* pData = (char*)fileData.data();
-        NSVGimage* svgData = nsvgParse(pData, "px", 96.0f);//传入"px"时，第三个参数dpi是不起作用的。
-        if (hasAppended) {
-            fileData.pop_back();
-        }
-
-        std::unique_ptr<NSVGimage, SvgDeleter> svg((NSVGimage*)svgData);
-        int width = (int)std::ceil(svg->width);
-        int height = (int)std::ceil(svg->height);
-        if (width <= 0 || height <= 0) {
-            return false;
-        }
-        nSvgImageWidth = width;
-        nSvgImageHeight = height;
-        return true;
+/** 获取Svg图片的宽度和高度(仅解析xml，无渲染，速度快)
+*/
+bool ImageSizeFromMemory(const std::vector<uint8_t>& data, int32_t& nSvgImageWidth, int32_t& nSvgImageHeight)
+{
+    std::vector<uint8_t> fileData = data;//此处需要复制数据，因为在解析的过程中，会破坏原来的数据
+    ASSERT(!fileData.empty());
+    if (fileData.empty()) {
+        return false;
     }
+    bool hasAppended = false;
+    if (fileData.back() != '\0') {
+        //确保是含尾0的字符串，避免越界访问内存
+        fileData.push_back('\0');
+        hasAppended = true;
+    }
+    char* pData = (char*)fileData.data();
+    NSVGimage* svgData = nsvgParse(pData, "px", 96.0f);//传入"px"时，第三个参数dpi是不起作用的。
+    if (hasAppended) {
+        fileData.pop_back();
+    }
+
+    std::unique_ptr<NSVGimage, SvgDeleter> svg((NSVGimage*)svgData);
+    int width = (int)std::ceil(svg->width);
+    int height = (int)std::ceil(svg->height);
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+    nSvgImageWidth = width;
+    nSvgImageHeight = height;
+    return true;
+}
 }
 
 /** SVG矢量图片接口的实现
@@ -270,11 +267,11 @@ std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& 
     if ((decodeParam.m_pFileData != nullptr) && !decodeParam.m_pFileData->empty()) {
         fileData = *decodeParam.m_pFileData;
     }
-    else if (!decodeParam.m_imageFilePath.IsEmpty()){
+    else if (!decodeParam.m_imageFilePath.IsEmpty()) {
         FileUtil::ReadFileData(decodeParam.m_imageFilePath, fileData);
         if (decodeParam.m_bAssertEnabled) {
             ASSERT(!fileData.empty());
-        }        
+        }
         if (fileData.empty()) {
             return nullptr;
         }
@@ -303,7 +300,7 @@ std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& 
     }
     spMemStream.reset();
 
-    SkSize svgSize = svgDom->getRoot()->intrinsicSize(SkSVGLengthContext(SkSize::Make(0, 0)));    
+    SkSize svgSize = svgDom->getRoot()->intrinsicSize(SkSVGLengthContext(SkSize::Make(0, 0)));
     int32_t nSvgImageWidth = int32_t(std::ceil(svgSize.width()));
     int32_t nSvgImageHeight = int32_t(std::ceil(svgSize.height()));
     if ((nSvgImageWidth < 1) || (nSvgImageHeight < 1)) {
@@ -345,7 +342,7 @@ std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& 
     }
 
     SvgImageImpl* pSvgImageImpl = new SvgImageImpl;
-    std::shared_ptr<ISvgImage> pSvgImage(pSvgImageImpl);    
+    std::shared_ptr<ISvgImage> pSvgImage(pSvgImageImpl);
     pSvgImageImpl->m_nImageWidth = nImageWidth;
     pSvgImageImpl->m_nImageHeight = nImageHeight;
     pSvgImageImpl->m_fImageSizeScale = fImageSizeScale;

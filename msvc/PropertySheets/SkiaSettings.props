@@ -4,8 +4,8 @@
     <PropertyGroup Label="Globals">
 
         <!-- Skia的宏定义 -->
-        <SkiaPreprocessorDefinitions Condition="'$(Configuration)'=='Release'">SK_GANESH;SK_GL;SK_RELEASE</SkiaPreprocessorDefinitions>
-        <SkiaPreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">SK_GANESH;SK_GL;SK_RELEASE</SkiaPreprocessorDefinitions>
+        <SkiaPreprocessorDefinitions Condition="'$(Configuration)'=='Release'">USE_RENDER_SKIA;SK_GANESH;SK_GL;SK_RELEASE</SkiaPreprocessorDefinitions>
+        <SkiaPreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">USE_RENDER_SKIA;SK_GANESH;SK_GL;SK_RELEASE</SkiaPreprocessorDefinitions>
 
         <!-- Skia的include目录 -->
         <SkiaIncludeDir>$(SolutionDir)\..\..\skia</SkiaIncludeDir>

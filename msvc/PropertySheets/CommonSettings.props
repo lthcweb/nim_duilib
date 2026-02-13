@@ -3,6 +3,11 @@
     <ImportGroup Label="PropertySheets" />
     <PropertyGroup Label="UserMacros" />
 
+	<!-- 切换渲染模式，SKIA/GDI -->
+	<PropertyGroup>
+	  <RenderBackend>SKIA</RenderBackend>
+	</PropertyGroup>
+
     <!-- duilib项目，所有工程的输出公共配置 -->
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <OutDir>$(SolutionDir)\..\lib\$(Platform)\</OutDir>
