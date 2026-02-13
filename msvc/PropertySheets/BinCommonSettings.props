@@ -23,14 +23,21 @@
     <Import Project="LibPagSettings.props" />
 
     <PropertyGroup Label="Globals">
+        <UseRenderSkia>false</UseRenderSkia>
+        <UseRenderSkia Condition="$([System.String]::Copy('$(PreprocessorDefinitions)').Contains('USE_RENDER_SKIA'))">true</UseRenderSkia>
+        <RenderSkiaLibDir Condition="'$(UseRenderSkia)'=='true'">$(SkiaLibDir)</RenderSkiaLibDir>
+        <RenderSkiaLibs Condition="'$(UseRenderSkia)'=='true'">$(SkiaLibs)</RenderSkiaLibs>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Globals">
         <!-- 头文件Include -->
         <DuilibBinIncludeDir>$(SolutionDir)\..;$(ProjectDir)</DuilibBinIncludeDir>
 
         <!-- 库文件Include -->
-        <DuilibBinLibIncludeDir>$(SkiaLibDir);$(SDLLibDir);$(JpegTurboLibDir);$(LibPagLibDir);$(SolutionDir)\..\lib\$(Platform)\</DuilibBinLibIncludeDir>
+        <DuilibBinLibIncludeDir>$(RenderSkiaLibDir);$(SDLLibDir);$(JpegTurboLibDir);$(LibPagLibDir);$(SolutionDir)\..\lib\$(Platform)\</DuilibBinLibIncludeDir>
 
         <!-- 库文件列表 -->
-        <DuilibBinLibList>$(SkiaLibs);$(SDLLibs);$(JpegTurboLibs);$(LibPagLibs);opengl32.lib;Imm32.lib;comctl32.lib;shlwapi.lib;</DuilibBinLibList>
+        <DuilibBinLibList>$(RenderSkiaLibs);$(SDLLibs);$(JpegTurboLibs);$(LibPagLibs);opengl32.lib;Imm32.lib;comctl32.lib;shlwapi.lib;</DuilibBinLibList>
     </PropertyGroup>
     
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

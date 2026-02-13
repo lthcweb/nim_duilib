@@ -1,10 +1,71 @@
 #include "Image_LOTTIE.h"
 #include "duilib/Core/GlobalManager.h"
 #include "duilib/Render/IRender.h"
+#if !defined(USE_RENDER_SKIA)
+
+namespace ui
+{
+
+struct Image_LOTTIE::TImpl
+{
+    uint32_t m_nWidth = 0;
+    uint32_t m_nHeight = 0;
+    float m_fImageSizeScale = 1.0f;
+};
+
+Image_LOTTIE::Image_LOTTIE() : m_impl(std::make_unique<TImpl>()) {}
+Image_LOTTIE::~Image_LOTTIE() = default;
+
+bool Image_LOTTIE::LoadImageFile(std::vector<uint8_t>& fileData,
+                                 const FilePath& imageFilePath,
+                                 float fImageSizeScale,
+                                 const UiSize& rcMaxDestRectSize,
+                                 bool bAssertEnabled)
+{
+    UNUSED_VARIABLE(fileData);
+    UNUSED_VARIABLE(imageFilePath);
+    UNUSED_VARIABLE(fImageSizeScale);
+    UNUSED_VARIABLE(rcMaxDestRectSize);
+    UNUSED_VARIABLE(bAssertEnabled);
+    // GDI路径预留：LOTTIE解码暂未实现
+    return false;
+}
+
+bool Image_LOTTIE::IsDelayDecodeEnabled() const { return false; }
+bool Image_LOTTIE::IsDelayDecodeFinished() const { return true; }
+uint32_t Image_LOTTIE::GetDecodedFrameIndex() const { return 0; }
+bool Image_LOTTIE::DelayDecode(uint32_t, std::function<bool(void)>, bool*) { return false; }
+bool Image_LOTTIE::MergeDelayDecodeData() { return false; }
+uint32_t Image_LOTTIE::GetWidth() const { return m_impl->m_nWidth; }
+uint32_t Image_LOTTIE::GetHeight() const { return m_impl->m_nHeight; }
+float Image_LOTTIE::GetImageSizeScale() const { return m_impl->m_fImageSizeScale; }
+int32_t Image_LOTTIE::GetFrameCount() const { return 0; }
+int32_t Image_LOTTIE::GetLoopCount() const { return 0; }
+bool Image_LOTTIE::IsFrameDataReady(uint32_t) { return false; }
+int32_t Image_LOTTIE::GetFrameDelayMs(uint32_t) { return IMAGE_ANIMATION_DELAY_MS; }
+bool Image_LOTTIE::ReadFrameData(int32_t, const UiSize&, AnimationFrame* pAnimationFrame)
+{
+    if (pAnimationFrame != nullptr) {
+        pAnimationFrame->m_bDataPending = false;
+        pAnimationFrame->m_bDataError = true;
+    }
+    return false;
+}
+
+} // namespace ui
+
+#else
+
 #include "duilib/RenderSkia/FontMgr_Skia.h"
 
 #include "duilib/RenderSkia/SkiaHeaderBegin.h"
-#include "modules/skottie/include/Skottie.h"
+#if __has_include("modules/skottie/include/Skottie.h")
+    #include "modules/skottie/include/Skottie.h"
+#elif __has_include("skottie/include/Skottie.h")
+    #include "skottie/include/Skottie.h"
+#else
+    #error "Skottie.h not found. Please add Skia root or Skia modules include path."
+#endif
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFontMgr.h"
@@ -338,3 +399,5 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
 }
 
 } //namespace ui
+
+#endif

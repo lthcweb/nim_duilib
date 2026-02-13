@@ -3,8 +3,10 @@
 #include "duilib/Image/Image_Svg.h"
 #include "duilib/Utils/FilePathUtil.h"
 #include "duilib/Utils/FileUtil.h"
+#include "duilib/Utils/StringUtil.h"
 #include "duilib/Core/GlobalManager.h"
 #include <cmath>
+#include <string_view>
 
 #if defined(__GNUC__) && !defined(__clang__)
     #pragma GCC diagnostic push
@@ -24,9 +26,56 @@
     #pragma GCC diagnostic pop
 #endif
 
+#if !defined(USE_RENDER_SKIA)
+
+namespace ui
+{
+
+ImageDecoder_SVG::ImageDecoder_SVG() = default;
+ImageDecoder_SVG::~ImageDecoder_SVG() = default;
+
+DString ImageDecoder_SVG::GetFormatName() const
+{
+    return _T("svg");
+}
+
+bool ImageDecoder_SVG::CanDecode(const DString& imageFilePath) const
+{
+    DString fileExt = FilePathUtil::GetFileExt(imageFilePath);
+    return StringUtil::CompareNoCase(fileExt, _T("svg")) == 0;
+}
+
+bool ImageDecoder_SVG::CanDecode(const uint8_t* data, size_t dataLen) const
+{
+    if ((data == nullptr) || (dataLen < 5)) {
+        return false;
+    }
+    std::string_view text(reinterpret_cast<const char*>(data), dataLen);
+    return (text.find("<svg") != std::string_view::npos) ||
+           (text.find("<?xml") != std::string_view::npos);
+}
+
+std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& decodeParam)
+{
+    UNUSED_VARIABLE(decodeParam);
+    // GDI路径预留：SVG矢量解码暂未实现
+    return nullptr;
+}
+
+} // namespace ui
+
+#else
+
 #include "duilib/RenderSkia/SkiaHeaderBegin.h"
-#include "modules/svg/include/SkSVGDOM.h"
-#include "modules/svg/include/SkSVGRenderContext.h"
+#if __has_include("modules/svg/include/SkSVGDOM.h")
+    #include "modules/svg/include/SkSVGDOM.h"
+    #include "modules/svg/include/SkSVGRenderContext.h"
+#elif __has_include("svg/include/SkSVGDOM.h")
+    #include "svg/include/SkSVGDOM.h"
+    #include "svg/include/SkSVGRenderContext.h"
+#else
+    #error "SkSVGDOM.h not found. Please add Skia root or Skia modules include path."
+#endif
 #include "include/core/SkStream.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkCanvas.h"
@@ -308,3 +357,5 @@ std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& 
 }
 
 } //namespace ui
+
+#endif
