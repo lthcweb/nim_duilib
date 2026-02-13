@@ -41,8 +41,12 @@ DString ImageDecoder_SVG::GetFormatName() const
 
 bool ImageDecoder_SVG::CanDecode(const DString& imageFilePath) const
 {
-    DString fileExt = FilePathUtil::GetFileExt(imageFilePath);
-    return StringUtil::CompareNoCase(fileExt, _T("svg")) == 0;
+    DString fileExt = FilePathUtil::GetFileExtension(imageFilePath);
+    StringUtil::MakeUpperString(fileExt);
+    if (fileExt == _T("SVG")) {
+        return true;
+    }
+    return false;
 }
 
 bool ImageDecoder_SVG::CanDecode(const uint8_t* data, size_t dataLen) const
