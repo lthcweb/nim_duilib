@@ -5,8 +5,77 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cmath>
+
+#ifdef DUILIB_BUILD_FOR_WIN
+#include <windows.h>
+#endif
 
 namespace ui {
+
+#ifdef DUILIB_BUILD_FOR_WIN
+static uint32_t ToDrawTextFlags(uint32_t uFormat)
+{
+    uint32_t flags = 0;
+    if (uFormat & DrawStringFormat::TEXT_HCENTER) {
+        flags |= DT_CENTER;
+    }
+    else if (uFormat & DrawStringFormat::TEXT_RIGHT) {
+        flags |= DT_RIGHT;
+    }
+    else {
+        flags |= DT_LEFT;
+    }
+
+    if (uFormat & DrawStringFormat::TEXT_VCENTER) {
+        flags |= DT_VCENTER;
+    }
+    else if (uFormat & DrawStringFormat::TEXT_BOTTOM) {
+        flags |= DT_BOTTOM;
+    }
+    else {
+        flags |= DT_TOP;
+    }
+
+    if (uFormat & DrawStringFormat::TEXT_SINGLELINE) {
+        flags |= DT_SINGLELINE;
+    }
+    else {
+        flags |= DT_WORDBREAK;
+    }
+
+    if (uFormat & DrawStringFormat::TEXT_END_ELLIPSIS) {
+        flags |= DT_END_ELLIPSIS;
+    }
+    if (uFormat & DrawStringFormat::TEXT_NOCLIP) {
+        flags |= DT_NOCLIP;
+    }
+    return flags;
+}
+
+static HFONT CreateGDIFont(const IFont* pFont)
+{
+    if (pFont == nullptr) {
+        return nullptr;
+    }
+    const int nHeight = -std::max(1, pFont->FontSize());
+    const int nWeight = pFont->IsBold() ? FW_BOLD : FW_NORMAL;
+    return ::CreateFont(nHeight,
+                        0,
+                        0,
+                        0,
+                        nWeight,
+                        pFont->IsItalic() ? TRUE : FALSE,
+                        pFont->IsUnderline() ? TRUE : FALSE,
+                        pFont->IsStrikeOut() ? TRUE : FALSE,
+                        DEFAULT_CHARSET,
+                        OUT_DEFAULT_PRECIS,
+                        CLIP_DEFAULT_PRECIS,
+                        CLEARTYPE_QUALITY,
+                        DEFAULT_PITCH | FF_DONTCARE,
+                        pFont->FontName().c_str());
+}
+#endif
 
 Render_GDI::Render_GDI(void* platformData, RenderBackendType backendType) :
     m_platformData(platformData),
@@ -108,10 +177,48 @@ bool Render_GDI::StretchBlt(int32_t xDest, int32_t yDest, int32_t widthDest, int
 bool Render_GDI::AlphaBlend(int32_t xDest, int32_t yDest, int32_t widthDest, int32_t heightDest,
                             IRender* pSrcRender, int32_t xSrc, int32_t ySrc, int32_t widthSrc, int32_t heightSrc, uint8_t alpha)
 {
-    UNUSED_VARIABLE(widthSrc);
-    UNUSED_VARIABLE(heightSrc);
-    UNUSED_VARIABLE(alpha);
-    return BlitRect(UiRect(xDest, yDest, xDest + widthDest, yDest + heightDest), dynamic_cast<Render_GDI*>(pSrcRender), UiPoint(xSrc, ySrc));
+    auto* pSrc = dynamic_cast<Render_GDI*>(pSrcRender);
+    if ((pSrc == nullptr) || pSrc->IsEmpty() || IsEmpty() || (widthDest <= 0) || (heightDest <= 0)) {
+        return false;
+    }
+    const int32_t wSrc = (widthSrc > 0) ? widthSrc : widthDest;
+    const int32_t hSrc = (heightSrc > 0) ? heightSrc : heightDest;
+    const int32_t drawW = std::min(widthDest, wSrc);
+    const int32_t drawH = std::min(heightDest, hSrc);
+    if ((drawW <= 0) || (drawH <= 0)) {
+        return false;
+    }
+
+    for (int32_t y = 0; y < drawH; ++y) {
+        for (int32_t x = 0; x < drawW; ++x) {
+            const uint32_t* pSrcPixel = pSrc->Pixel(xSrc + x, ySrc + y);
+            uint32_t* pDstPixel = Pixel(xDest + x, yDest + y);
+            if ((pSrcPixel == nullptr) || (pDstPixel == nullptr)) {
+                continue;
+            }
+            const uint32_t src = *pSrcPixel;
+            const uint32_t dst = *pDstPixel;
+
+            const uint32_t srcA = ((src >> 24) & 0xFF) * alpha / 255;
+            const uint32_t invA = 255 - srcA;
+
+            const uint32_t srcR = (src >> 16) & 0xFF;
+            const uint32_t srcG = (src >> 8) & 0xFF;
+            const uint32_t srcB = src & 0xFF;
+
+            const uint32_t dstA = (dst >> 24) & 0xFF;
+            const uint32_t dstR = (dst >> 16) & 0xFF;
+            const uint32_t dstG = (dst >> 8) & 0xFF;
+            const uint32_t dstB = dst & 0xFF;
+
+            const uint32_t outA = srcA + (dstA * invA + 127) / 255;
+            const uint32_t outR = (srcR * srcA + dstR * invA + 127) / 255;
+            const uint32_t outG = (srcG * srcA + dstG * invA + 127) / 255;
+            const uint32_t outB = (srcB * srcA + dstB * invA + 127) / 255;
+            *pDstPixel = UiColor::MakeARGB((uint8_t)outA, (uint8_t)outR, (uint8_t)outG, (uint8_t)outB);
+        }
+    }
+    return true;
 }
 
 void Render_GDI::DrawImage(const UiRect&, IBitmap* pBitmap, const UiRect& rcDest, const UiRect&, const UiRect& rcSource, const UiRect&, uint8_t uFade, const TiledDrawParam*, bool)
@@ -134,11 +241,26 @@ void Render_GDI::DrawImageRect(const UiRect&, IBitmap* pBitmap, const UiRect& rc
     DrawGDIImage::DrawImageRect(m_bitmap, rcDest, *pBitmapGDI, rcSource, uFade);
 }
 
-void Render_GDI::DrawLine(const UiPoint&, const UiPoint&, UiColor, int32_t) {}
-void Render_GDI::DrawLine(const UiPoint&, const UiPoint&, UiColor, float) {}
-void Render_GDI::DrawLine(const UiPointF&, const UiPointF&, UiColor, float) {}
-void Render_GDI::DrawLine(const UiPoint&, const UiPoint&, IPen*) {}
-void Render_GDI::DrawLine(const UiPointF&, const UiPointF&, IPen*) {}
+void Render_GDI::DrawLine(const UiPoint& pt1, const UiPoint& pt2, UiColor penColor, int32_t nWidth) { DrawLine(UiPointF((float)pt1.x, (float)pt1.y), UiPointF((float)pt2.x, (float)pt2.y), penColor, static_cast<float>(nWidth)); }
+void Render_GDI::DrawLine(const UiPoint& pt1, const UiPoint& pt2, UiColor penColor, float fWidth) { DrawLine(UiPointF((float)pt1.x, (float)pt1.y), UiPointF((float)pt2.x, (float)pt2.y), penColor, fWidth); }
+void Render_GDI::DrawLine(const UiPointF& pt1, const UiPointF& pt2, UiColor penColor, float fWidth)
+{
+    if (IsEmpty()) {
+        return;
+    }
+    const int32_t halfWidth = std::max(1, static_cast<int32_t>(fWidth + 0.5f)) / 2;
+    const float dx = pt2.x - pt1.x;
+    const float dy = pt2.y - pt1.y;
+    const int32_t steps = std::max(1, static_cast<int32_t>(std::max(std::fabs(dx), std::fabs(dy))));
+    for (int32_t i = 0; i <= steps; ++i) {
+        const float t = static_cast<float>(i) / static_cast<float>(steps);
+        const int32_t x = static_cast<int32_t>(pt1.x + dx * t + 0.5f);
+        const int32_t y = static_cast<int32_t>(pt1.y + dy * t + 0.5f);
+        FillRect(UiRect(x - halfWidth, y - halfWidth, x + halfWidth + 1, y + halfWidth + 1), penColor);
+    }
+}
+void Render_GDI::DrawLine(const UiPoint& pt1, const UiPoint& pt2, IPen* pen) { if (pen != nullptr) DrawLine(pt1, pt2, pen->GetColor(), pen->GetWidth()); }
+void Render_GDI::DrawLine(const UiPointF& pt1, const UiPointF& pt2, IPen* pen) { if (pen != nullptr) DrawLine(pt1, pt2, pen->GetColor(), pen->GetWidth()); }
 void Render_GDI::DrawRect(const UiRect& rc, UiColor penColor, int32_t nWidth, bool bLineInRect) { DrawRect(rc, penColor, static_cast<float>(nWidth), bLineInRect); }
 void Render_GDI::DrawRect(const UiRectF& rc, UiColor penColor, int32_t nWidth, bool bLineInRect) { DrawRect(rc, penColor, static_cast<float>(nWidth), bLineInRect); }
 
@@ -197,8 +319,69 @@ void Render_GDI::FillCircle(const UiPoint&, int32_t, UiColor, uint8_t) {}
 void Render_GDI::DrawPath(const IPath*, const IPen*) {}
 void Render_GDI::FillPath(const IPath*, const IBrush*) {}
 void Render_GDI::FillPath(const IPath*, const UiRect&, UiColor, UiColor, int8_t) {}
-UiRect Render_GDI::MeasureString(const DString& strText, const MeasureStringParam& measureParam) { int h = (measureParam.pFont != nullptr) ? measureParam.pFont->FontSize() : 14; int w = static_cast<int>(strText.size()) * h / 2; return UiRect(0, 0, w, h); }
-void Render_GDI::DrawString(const DString&, const DrawStringParam&) {}
+UiRect Render_GDI::MeasureString(const DString& strText, const MeasureStringParam& measureParam)
+{
+    if (strText.empty()) {
+        return UiRect();
+    }
+#ifdef DUILIB_BUILD_FOR_WIN
+    HDC hdc = ::CreateCompatibleDC(nullptr);
+    if (hdc != nullptr) {
+        HFONT hFont = CreateGDIFont(measureParam.pFont);
+        HGDIOBJ hOldFont = nullptr;
+        if (hFont != nullptr) {
+            hOldFont = ::SelectObject(hdc, hFont);
+        }
+        RECT rc = { 0, 0, (measureParam.rectSize > 0) ? measureParam.rectSize : 32767, 32767 };
+        uint32_t flags = ToDrawTextFlags(measureParam.uFormat) | DT_CALCRECT;
+        if ((measureParam.rectSize <= 0) && !(measureParam.uFormat & DrawStringFormat::TEXT_SINGLELINE)) {
+            flags &= ~DT_WORDBREAK;
+        }
+        ::DrawText(hdc, strText.c_str(), static_cast<int>(strText.size()), &rc, flags);
+        if (hOldFont != nullptr) {
+            ::SelectObject(hdc, hOldFont);
+        }
+        if (hFont != nullptr) {
+            ::DeleteObject(hFont);
+        }
+        ::DeleteDC(hdc);
+        return UiRect(0, 0, rc.right - rc.left, rc.bottom - rc.top);
+    }
+#endif
+    int h = (measureParam.pFont != nullptr) ? measureParam.pFont->FontSize() : 14;
+    int w = static_cast<int>(strText.size()) * h / 2;
+    return UiRect(0, 0, w, h);
+}
+
+void Render_GDI::DrawString(const DString& strText, const DrawStringParam& drawParam)
+{
+    if (strText.empty() || drawParam.textRect.IsEmpty()) {
+        return;
+    }
+#ifdef DUILIB_BUILD_FOR_WIN
+    HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
+    if (hdc != nullptr) {
+        HFONT hFont = CreateGDIFont(drawParam.pFont);
+        HGDIOBJ hOldFont = nullptr;
+        if (hFont != nullptr) {
+            hOldFont = ::SelectObject(hdc, hFont);
+        }
+        ::SetBkMode(hdc, TRANSPARENT);
+        ::SetTextColor(hdc, RGB(drawParam.dwTextColor.GetR(), drawParam.dwTextColor.GetG(), drawParam.dwTextColor.GetB()));
+        RECT rc = { drawParam.textRect.left, drawParam.textRect.top, drawParam.textRect.right, drawParam.textRect.bottom };
+        uint32_t flags = ToDrawTextFlags(drawParam.uFormat);
+        ::DrawText(hdc, strText.c_str(), static_cast<int>(strText.size()), &rc, flags);
+        if (hOldFont != nullptr) {
+            ::SelectObject(hdc, hOldFont);
+        }
+        if (hFont != nullptr) {
+            ::DeleteObject(hFont);
+        }
+        ReleaseRenderDC(hdc);
+        return;
+    }
+#endif
+}
 void Render_GDI::MeasureRichText(const UiRect&, const UiSize&, IRenderFactory*, const std::vector<RichTextData>&, std::vector<std::vector<UiRect>>*) {}
 void Render_GDI::MeasureRichText2(const UiRect&, const UiSize&, IRenderFactory*, const std::vector<RichTextData>&, RichTextLineInfoParam*, std::vector<std::vector<UiRect>>*) {}
 void Render_GDI::MeasureRichText3(const UiRect&, const UiSize&, IRenderFactory*, const std::vector<RichTextData>&, RichTextLineInfoParam*, std::shared_ptr<DrawRichTextCache>&, std::vector<std::vector<UiRect>>*) {}
