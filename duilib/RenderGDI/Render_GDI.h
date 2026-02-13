@@ -108,6 +108,10 @@ private:
     bool BlitRect(const UiRect& dst, const Render_GDI* src, const UiPoint& srcPt);
     inline uint32_t* Pixel(int32_t x, int32_t y);
     inline const uint32_t* Pixel(int32_t x, int32_t y) const;
+#ifdef DUILIB_BUILD_FOR_WIN
+    bool SwapPaintBuffers(HDC hPaintDC, const UiRect& rcPaint, uint8_t nLayeredWindowAlpha);
+    void DeleteDC();
+#endif
 
 private:
     void* m_platformData = nullptr;
@@ -117,6 +121,12 @@ private:
     std::vector<UiRect> m_clipStack;
     std::vector<UiRect> m_clipStates;
     Bitmap_GDI m_bitmap;
+#ifdef DUILIB_BUILD_FOR_WIN
+    HDC m_hDC = nullptr;
+    HGDIOBJ m_hOldObj = nullptr;
+    HBITMAP m_hBitmap = nullptr;
+    void* m_pDIBits = nullptr;
+#endif
 };
 
 } // namespace ui
