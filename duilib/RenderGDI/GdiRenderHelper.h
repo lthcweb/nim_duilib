@@ -5,8 +5,9 @@
 #include "duilib/Core/UiString.h"
 
 #if defined(DUILIB_BUILD_FOR_WIN)
-    #include "duilib/duilib_config_windows.h"
+#include "duilib/duilib_config_windows.h"
 #endif
+#include <duilib/Core/UiColor.h>
 
 namespace ui
 {
@@ -19,24 +20,24 @@ UILIB_API UiColor HSLtoRGB(float h, float s, float l, uint8_t alpha = 255);
 
 /** 计算图片目标区域（功能来源于旧版 UIRender.cpp） */
 UILIB_API bool MakeImageDest(const UiRect& rcControl,
-                             const UiSize& szImage,
-                             const DString& sAlign,
-                             const UiPadding& rcPadding,
-                             UiRect& rcDest);
+    const UiSize& szImage,
+    const DString& sAlign,
+    const UiPadding& rcPadding,
+    UiRect& rcDest);
 
 #if defined(DUILIB_BUILD_FOR_WIN)
 /** 基于像素alpha的BitBlt合成（功能来源于旧版 UIRender.cpp） */
 UILIB_API bool AlphaBitBlt(HDC hDC,
-                           int32_t nDestX,
-                           int32_t nDestY,
-                           int32_t dwWidth,
-                           int32_t dwHeight,
-                           HDC hSrcDC,
-                           int32_t nSrcX,
-                           int32_t nSrcY,
-                           int32_t wSrc,
-                           int32_t hSrc,
-                           BLENDFUNCTION ftn);
+    int32_t nDestX,
+    int32_t nDestY,
+    int32_t dwWidth,
+    int32_t dwHeight,
+    HDC hSrcDC,
+    int32_t nSrcX,
+    int32_t nSrcY,
+    int32_t wSrc,
+    int32_t hSrc,
+    BLENDFUNCTION ftn);
 #endif
 
 } // namespace ui

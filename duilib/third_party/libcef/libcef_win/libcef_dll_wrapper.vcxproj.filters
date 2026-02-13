@@ -2042,9 +2042,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include=".\libcef_dll\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include=".\include\base\internal\cef_color_id_macros.inc">
       <Filter>include\base\internal</Filter>
     </None>

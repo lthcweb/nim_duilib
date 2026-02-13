@@ -26,7 +26,6 @@
 #include "include/core/SkSurface.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkPath.h"
-#include "include/core/SkPathBuilder.h"
 #include "include/core/SkRegion.h"
 #include "include/core/SkTypeface.h"
 #include "include/core/SkFont.h"
@@ -34,7 +33,7 @@
 #include "include/core/SkFontMetrics.h"
 #include "include/core/SkPathEffect.h"
 #include "include/effects/SkDashPathEffect.h"
-#include "include/effects/SkGradient.h"
+#include "include/effects/SkGradientShader.h"
 #include "include/effects/SkImageFilters.h"
 
 #include "SkiaHeaderEnd.h"
@@ -256,7 +255,8 @@ void Render_Skia::SetRoundClip(const UiRect& rc, float rx, float ry, bool bInter
     SkIRect rcSkI = { rc.left, rc.top, rc.right, rc.bottom };
     SkRect rcSk = SkRect::Make(rcSkI);
 
-    SkPath skPath = SkPath::RRect(rcSk, rx, ry);
+    SkPath skPath;
+    skPath.addRoundRect(rcSk, rx, ry);
     SkRegion clip;
     clip.setRect(rcSkI);
     SkRegion rgn;
@@ -980,11 +980,11 @@ void Render_Skia::InitGradientColor(SkPaint& skPaint, const UiRectF& rc, UiColor
         pts[1].set(rcSkDest.fRight, rcSkDest.fTop);
     }
 
-    SkColor4f colors[2];
-    colors[0] = SkColor4f::FromColor(SkColorSetARGB(dwColor.GetA(), dwColor.GetR(), dwColor.GetG(), dwColor.GetB()));
-    colors[1] = SkColor4f::FromColor(SkColorSetARGB(dwColor2.GetA(), dwColor2.GetR(), dwColor2.GetG(), dwColor2.GetB()));
-    SkGradient::Colors skColors(SkSpan<const SkColor4f>(colors, 2), SkTileMode::kClamp);
-    sk_sp<SkShader> shader(SkShaders::LinearGradient(pts, SkGradient(skColors, SkGradient::Interpolation())));
+    SkColor colors[2];
+    colors[0] = SkColorSetRGB(dwColor.GetR(), dwColor.GetG(), dwColor.GetB());
+    colors[1] = SkColorSetRGB(dwColor2.GetR(), dwColor2.GetG(), dwColor2.GetB());
+
+    sk_sp<SkShader> shader(SkGradientShader::MakeLinear(pts, colors, nullptr, 2, SkTileMode::kClamp));
     skPaint.setShader(shader);
 }
 
@@ -1388,11 +1388,10 @@ void Render_Skia::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, 
     SkRect ovalRect = SkRect::Make(rcSkDestI);
     ovalRect.offset(*m_pSkPointOrg);
 
-    if((gradientColor != nullptr) && (gradientRect != nullptr)) {
-        UiColor dwColor = pen->GetColor();
-        SkColor4f colors[2];        
-        colors[0] = SkColor4f::FromColor(SkColorSetARGB(dwColor.GetA(), dwColor.GetR(), dwColor.GetG(), dwColor.GetB()));
-        colors[1] = SkColor4f::FromColor(SkColorSetARGB(gradientColor->GetA(), gradientColor->GetR(), gradientColor->GetG(), gradientColor->GetB()));
+    if((gradientColor != nullptr) && (gradientRect != nullptr)) {        
+        SkColor colors[2] = {0};
+        colors[0] = pen->GetColor().GetARGB();
+        colors[1] = gradientColor->GetARGB();
         
         SkIRect rcGradientDestI = { gradientRect->left, gradientRect->top, gradientRect->right, gradientRect->bottom };
         SkRect rcGradientDest = SkRect::Make(rcGradientDestI);
@@ -1401,9 +1400,8 @@ void Render_Skia::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, 
         SkPoint pts[2] = { {0, 0}, {0, 0} };
         pts[0].set(rcGradientDest.fLeft, rcGradientDest.fTop);
         pts[1].set(rcGradientDest.fRight, rcGradientDest.fBottom);
-
-        SkGradient::Colors skColors(SkSpan<const SkColor4f>(colors), SkTileMode::kClamp);
-        sk_sp<SkShader> shaderA(SkShaders::LinearGradient(pts, SkGradient(skColors, SkGradient::Interpolation())));
+        
+        sk_sp<SkShader> shaderA = SkGradientShader::MakeLinear(pts, colors, nullptr, 2, SkTileMode::kClamp);
         paint.setShader(shaderA);
     }
 
@@ -1430,9 +1428,9 @@ void Render_Skia::DrawPath(const IPath* path, const IPen* pen)
     SkPaint paint = *m_pSkPaint;
     SetPaintByPen(paint, pen);
 
-    SkPathBuilder skPathBuilder = *pSkiaPath->GetSkPathBuilder();
-    skPathBuilder.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY);
-    SkPath skPath = skPathBuilder.snapshot();
+    SkPath skPath;
+    pSkiaPath->GetSkPath()->offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY, &skPath);
+
     SkCanvas* skCanvas = GetSkCanvas();
     ASSERT(skCanvas != nullptr);
     if (skCanvas != nullptr) {
@@ -1566,9 +1564,8 @@ void Render_Skia::FillPath(const IPath* path, const IBrush* brush)
     paint.setColor(brush->GetColor().GetARGB());
     paint.setStyle(SkPaint::kFill_Style);
 
-    SkPathBuilder skPathBuilder = *pSkiaPath->GetSkPathBuilder();
-    skPathBuilder.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY);
-    SkPath skPath = skPathBuilder.snapshot();
+    SkPath skPath;
+    pSkiaPath->GetSkPath()->offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY, &skPath);
 
     SkCanvas* skCanvas = GetSkCanvas();
     ASSERT(skCanvas != nullptr);
@@ -1594,9 +1591,8 @@ void Render_Skia::FillPath(const IPath* path, const UiRect& rc, UiColor dwColor,
 
     InitGradientColor(skPaint, rc, dwColor, dwColor2, nColor2Direction);
     
-    SkPathBuilder skPathBuilder = *pSkiaPath->GetSkPathBuilder();
-    skPathBuilder.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY);
-    SkPath skPath = skPathBuilder.snapshot();
+    SkPath skPath;
+    pSkiaPath->GetSkPath()->offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY, &skPath);
 
     SkCanvas* skCanvas = GetSkCanvas();
     ASSERT(skCanvas != nullptr);
@@ -2043,11 +2039,11 @@ void Render_Skia::DrawBoxShadow(const UiRect& rc,
     SkRect excludeRc;
     excludeRc.setXYWH((SkScalar)rc.left, (SkScalar)rc.top, (SkScalar)rc.Width(), (SkScalar)rc.Height());
 
-    SkPathBuilder shadowPath;
-    shadowPath.addRRect(SkRRect::MakeRectXY(srcRc, (SkScalar)roundSize.cx, (SkScalar)roundSize.cy));
+    SkPath shadowPath;
+    shadowPath.addRoundRect(srcRc, (SkScalar)roundSize.cx, (SkScalar)roundSize.cy);
 
-    SkPathBuilder excludePath;
-    excludePath.addRRect(SkRRect::MakeRectXY(excludeRc, (SkScalar)roundSize.cx, (SkScalar)roundSize.cy));
+    SkPath excludePath;    
+    excludePath.addRoundRect(excludeRc, (SkScalar)roundSize.cx, (SkScalar)roundSize.cy);
 
     SkPaint paint = *m_pSkPaint;
     paint.setColor(dwColor.GetARGB());
@@ -2056,10 +2052,12 @@ void Render_Skia::DrawBoxShadow(const UiRect& rc,
     SkAutoCanvasRestore autoCanvasRestore(skCanvas, true);
 
     //裁剪中间区域
-    excludePath.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY);
-    skCanvas->clipPath(excludePath.snapshot(), SkClipOp::kDifference);
+    SkPath skPathExclude;
+    excludePath.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY, &skPathExclude);
+    skCanvas->clipPath(skPathExclude, SkClipOp::kDifference);
 
-    shadowPath.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY);
+    SkPath skPath;
+    shadowPath.offset(m_pSkPointOrg->fX, m_pSkPointOrg->fY, &skPath);
 
     //设置绘制阴影的属性
     const SkScalar sigmaX = (SkScalar)nBlurRadius;
@@ -2075,9 +2073,9 @@ void Render_Skia::DrawBoxShadow(const UiRect& rc,
     const SkScalar offsetY = (SkScalar)cpOffset.y;
     SkMatrix mat;
     mat.postTranslate(offsetX, offsetY);
-    shadowPath.transform(mat);
+    skPath.transform(mat);
 
-    skCanvas->drawPath(shadowPath.snapshot(), paint);
+    skCanvas->drawPath(skPath, paint);
 }
 
 bool Render_Skia::ReadPixels(const UiRect& rc, void* dstPixels, size_t dstPixelsLen)

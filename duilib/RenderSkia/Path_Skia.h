@@ -3,7 +3,7 @@
 
 #include "duilib/Render/IRender.h"
 
-class SkPathBuilder;
+class SkPath;
 
 namespace ui 
 {
@@ -41,7 +41,7 @@ public:
 public:
     /** 获取Skia Path
     */
-    SkPathBuilder* GetSkPathBuilder() const;
+    SkPath* GetSkPath() const;
 
 private:
     /** 将绘制起点移动到指定的点(x1,y1)
@@ -51,7 +51,7 @@ private:
 private:
     /** Skia Path
     */
-    std::unique_ptr<SkPathBuilder> m_skPathBuilder;
+    std::unique_ptr<SkPath> m_skPath;
 };
 
 } // namespace ui

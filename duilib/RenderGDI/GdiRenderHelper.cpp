@@ -14,9 +14,9 @@ void RGBtoHSL(UiColor rgb, float* h, float* s, float* l)
         return;
     }
 
-    const float r = static_cast<float>(GetRValue(rgb)) / 255.0f;
-    const float g = static_cast<float>(GetGValue(rgb)) / 255.0f;
-    const float b = static_cast<float>(GetBValue(rgb)) / 255.0f;
+    const float r = static_cast<float>(GetRValue(rgb.GetARGB())) / 255.0f;
+    const float g = static_cast<float>(GetGValue(rgb.GetARGB())) / 255.0f;
+    const float b = static_cast<float>(GetBValue(rgb.GetARGB())) / 255.0f;
     const float m = std::min(std::min(r, g), b);
     const float M = std::max(std::max(r, g), b);
 
