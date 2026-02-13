@@ -121,6 +121,15 @@
 
 #endif
 
+
+#if defined(USE_RENDER_GDI) && defined(USE_RENDER_SKIA)
+    #error "USE_RENDER_GDI and USE_RENDER_SKIA cannot be defined at the same time"
+#endif
+
+#if !defined(USE_RENDER_GDI) && !defined(USE_RENDER_SKIA)
+    #define USE_RENDER_SKIA 1
+#endif
+
 //字符串类的定义
 #include "duilib_string.h"
 

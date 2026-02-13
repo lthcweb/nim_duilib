@@ -40,6 +40,12 @@
     <Filter Include="RenderSkia">
       <UniqueIdentifier>{0a39786a-5478-4647-b38c-4e57f94acfb4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RenderGDI">
+      <UniqueIdentifier>{2f9b9f5d-4ed7-4f50-8c7c-7db8849c8d3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RenderGDI\Windows">
+      <UniqueIdentifier>{db044eb5-8ef2-4f0e-b4bf-401ec4f1d4be}</UniqueIdentifier>
+    </Filter>
     <Filter Include="third_party\xml">
       <UniqueIdentifier>{94f29640-b8f0-4c7e-ad1d-dae80f83d3f5}</UniqueIdentifier>
     </Filter>
@@ -180,6 +186,12 @@
     <ClCompile Include="RenderSkia\RenderFactory_Skia.cpp">
       <Filter>RenderSkia</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI.cpp">
+      <Filter>RenderGDI\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
       <Filter>RenderSkia</Filter>
     </ClCompile>
@@ -188,6 +200,12 @@
     </ClCompile>
     <ClCompile Include="Render\BitmapAlpha.cpp">
       <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiObjects.cpp">
+      <Filter>RenderGDI</Filter>
     </ClCompile>
     <ClCompile Include="RenderSkia\Pen_Skia.cpp">
       <Filter>RenderSkia</Filter>
@@ -995,6 +1013,12 @@
     <ClInclude Include="RenderSkia\RenderFactory_Skia.h">
       <Filter>RenderSkia</Filter>
     </ClInclude>
+    <ClInclude Include="RenderGDI\RenderFactory_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Render_GDI.h">
+      <Filter>RenderGDI\Windows</Filter>
+    </ClInclude>
     <ClInclude Include="RenderSkia\Render_Skia.h">
       <Filter>RenderSkia</Filter>
     </ClInclude>
@@ -1003,6 +1027,12 @@
     </ClInclude>
     <ClInclude Include="Render\BitmapAlpha.h">
       <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\GdiRenderHelper.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\GdiObjects.h">
+      <Filter>RenderGDI</Filter>
     </ClInclude>
     <ClInclude Include="RenderSkia\Pen_Skia.h">
       <Filter>RenderSkia</Filter>

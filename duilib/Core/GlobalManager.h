@@ -15,6 +15,7 @@
 #include "duilib/Core/IconManager.h"
 #include "duilib/Core/WindowManager.h"
 #include "duilib/Image/ImageDecoderFactory.h"
+#include "duilib/Render/IRender.h"
 
 #include <string>
 #include <vector>
@@ -164,6 +165,15 @@ public:
     /** 启动一个内部线程（kThreadWorker/kThreadNetwork/kThreadImage1/kThreadImage2）
     */
     bool StartInnerThread(int32_t nThreadIdentifier);
+
+public:
+    /** 设置渲染引擎类型（需在Startup前调用）
+    */
+    void SetRenderType(RenderType renderType);
+
+    /** 获取当前渲染引擎类型
+    */
+    RenderType GetRenderType() const;
 
 public:
     /** 获取绘制接口类对象
@@ -391,6 +401,10 @@ private:
     /** 渲染引擎管理接口
     */
     std::unique_ptr<IRenderFactory> m_renderFactory;
+
+    /** 渲染引擎类型
+    */
+    RenderType m_renderType;
 
     /** 全局的资源路径，换肤的时候修改这个变量（绝对路径）
     */

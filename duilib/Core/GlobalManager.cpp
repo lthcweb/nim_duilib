@@ -6,7 +6,12 @@
 #include "duilib/Core/Box.h"
 
 //渲染引擎
-#include "duilib/RenderSkia/RenderFactory_Skia.h"
+#include "duilib/Render/IRender.h"
+#if defined(USE_RENDER_SKIA)
+    #include "duilib/RenderSkia/RenderFactory_Skia.h"
+#elif defined(USE_RENDER_GDI)
+    #include "duilib/RenderGDI/RenderFactory_GDI.h"
+#endif
 
 //图片解码接口
 #include "duilib/Image/ImageDecoder_ICO.h"
@@ -68,7 +73,8 @@ private:
 };
 
 GlobalManager::GlobalManager():
-    m_platformData(nullptr)
+    m_platformData(nullptr),
+    m_renderType(RenderType::kRenderType_Skia)
 {
 }
 
@@ -164,8 +170,14 @@ bool GlobalManager::Startup(const ResourceParam& resParam,
     //初始化定时器
     m_timerManager.Initialize(m_platformData);
 
-    //Skia渲染引擎实现
-    m_renderFactory = std::make_unique<RenderFactory_Skia>();    
+    //渲染引擎实现（编译期二选一，确保Skia/GDI完全隔离）
+#if defined(USE_RENDER_GDI)
+    m_renderType = RenderType::kRenderType_GDI;
+    m_renderFactory = std::make_unique<RenderFactory_GDI>();
+#elif defined(USE_RENDER_SKIA)
+    m_renderType = RenderType::kRenderType_Skia;
+    m_renderFactory = std::make_unique<RenderFactory_Skia>();
+#endif
 
     ASSERT(m_renderFactory != nullptr);
     if (m_renderFactory == nullptr) {
@@ -746,6 +758,28 @@ void GlobalManager::RemoveAllImages()
 IRenderFactory* GlobalManager::GetRenderFactory()
 {
     return m_renderFactory.get();
+}
+
+void GlobalManager::SetRenderType(RenderType renderType)
+{
+    ASSERT(m_renderFactory == nullptr);
+    if (m_renderFactory != nullptr) {
+        return;
+    }
+#if defined(USE_RENDER_GDI)
+    // 编译期已固定为GDI，运行期不支持切换到Skia
+    m_renderType = RenderType::kRenderType_GDI;
+    UNUSED_VARIABLE(renderType);
+#elif defined(USE_RENDER_SKIA)
+    // 编译期已固定为Skia，运行期不支持切换到GDI
+    m_renderType = RenderType::kRenderType_Skia;
+    UNUSED_VARIABLE(renderType);
+#endif
+}
+
+RenderType GlobalManager::GetRenderType() const
+{
+    return m_renderType;
 }
 
 void GlobalManager::AddClass(const DString& strClassName, const DString& strControlAttrList)
