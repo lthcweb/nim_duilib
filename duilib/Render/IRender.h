@@ -488,7 +488,8 @@ enum UILIB_API DrawStringFormat
 */
 enum class RenderType
 {
-    kRenderType_Skia = 0
+    kRenderType_Skia = 0,
+    kRenderType_GDI = 1
 };
 
 /** 格式文本数据

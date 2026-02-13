@@ -76,6 +76,9 @@ endif()
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${DUILIB_SRC_ROOT_DIR}/lib/")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${DUILIB_SRC_ROOT_DIR}/lib/")
 
+#渲染后端（二选一）
+option(DUILIB_USE_RENDER_GDI "Build with GDI renderer (disable Skia renderer sources)" OFF)
+
 #添加源代码文件
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR} DIR_LIB_SRC)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/Animation ANIMATION_SRC)
@@ -86,7 +89,16 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/Core CORE_SRC)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/Image IMAGE_SRC)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/Render RENDER_SRC)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/RenderSkia RENDER_SKIA_SRC)
+aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/RenderGDI RENDER_GDI_SRC)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/Utils UTILS_SRC)
+
+if(DUILIB_USE_RENDER_GDI)
+    set(SELECTED_RENDER_SRC ${RENDER_GDI_SRC})
+    add_compile_definitions(USE_RENDER_GDI=1)
+else()
+    set(SELECTED_RENDER_SRC ${RENDER_SKIA_SRC})
+    add_compile_definitions(USE_RENDER_SKIA=1)
+endif()
 
 # Only include CEF sources on supported platforms (Windows, Linux, macOS)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -195,7 +207,7 @@ set(LIBRARY_SOURCES
     ${CORE_SRC}
     ${IMAGE_SRC}
     ${RENDER_SRC}
-    ${RENDER_SKIA_SRC}
+    ${SELECTED_RENDER_SRC}
     ${UTILS_SRC}
     ${APNG_SRC}
     ${STB_SRC}
@@ -206,12 +218,17 @@ set(LIBRARY_SOURCES
     ${UNZIP_SRCS}
     ${GIFLIB_HDRS}
     ${GIFLIB_SRCS}
-    ${SKIA_HDRS}
-    ${SKIA_SRCS}
-    ${SKIA_WGL_SRCS}
     ${UDIS_HDRS}
     ${UDIS_SRCS}
 )
+
+if(NOT DUILIB_USE_RENDER_GDI)
+    list(APPEND LIBRARY_SOURCES
+        ${SKIA_HDRS}
+        ${SKIA_SRCS}
+        ${SKIA_WGL_SRCS}
+    )
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")  # Windows, WebView2
     aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/WebView2 WEBVIEW2_CONTROL_SRC)
