@@ -1,6 +1,61 @@
 #include "Image_LOTTIE.h"
 #include "duilib/Core/GlobalManager.h"
 #include "duilib/Render/IRender.h"
+#if !defined(USE_RENDER_SKIA)
+
+namespace ui
+{
+
+struct Image_LOTTIE::TImpl
+{
+    uint32_t m_nWidth = 0;
+    uint32_t m_nHeight = 0;
+    float m_fImageSizeScale = 1.0f;
+};
+
+Image_LOTTIE::Image_LOTTIE() : m_impl(std::make_unique<TImpl>()) {}
+Image_LOTTIE::~Image_LOTTIE() = default;
+
+bool Image_LOTTIE::LoadImageFile(std::vector<uint8_t>& fileData,
+    const FilePath& imageFilePath,
+    float fImageSizeScale,
+    const UiSize& rcMaxDestRectSize,
+    bool bAssertEnabled)
+{
+    UNUSED_VARIABLE(fileData);
+    UNUSED_VARIABLE(imageFilePath);
+    UNUSED_VARIABLE(fImageSizeScale);
+    UNUSED_VARIABLE(rcMaxDestRectSize);
+    UNUSED_VARIABLE(bAssertEnabled);
+    // GDI路径预留：LOTTIE解码暂未实现
+    return false;
+}
+
+bool Image_LOTTIE::IsDelayDecodeEnabled() const { return false; }
+bool Image_LOTTIE::IsDelayDecodeFinished() const { return true; }
+uint32_t Image_LOTTIE::GetDecodedFrameIndex() const { return 0; }
+bool Image_LOTTIE::DelayDecode(uint32_t, std::function<bool(void)>, bool*) { return false; }
+bool Image_LOTTIE::MergeDelayDecodeData() { return false; }
+uint32_t Image_LOTTIE::GetWidth() const { return m_impl->m_nWidth; }
+uint32_t Image_LOTTIE::GetHeight() const { return m_impl->m_nHeight; }
+float Image_LOTTIE::GetImageSizeScale() const { return m_impl->m_fImageSizeScale; }
+int32_t Image_LOTTIE::GetFrameCount() const { return 0; }
+int32_t Image_LOTTIE::GetLoopCount() const { return 0; }
+bool Image_LOTTIE::IsFrameDataReady(uint32_t) { return false; }
+int32_t Image_LOTTIE::GetFrameDelayMs(uint32_t) { return IMAGE_ANIMATION_DELAY_MS; }
+bool Image_LOTTIE::ReadFrameData(int32_t, const UiSize&, AnimationFrame* pAnimationFrame)
+{
+    if (pAnimationFrame != nullptr) {
+        pAnimationFrame->m_bDataPending = false;
+        pAnimationFrame->m_bDataError = true;
+    }
+    return false;
+}
+
+} // namespace ui
+
+#else
+
 #include "duilib/RenderSkia/FontMgr_Skia.h"
 
 #include "duilib/RenderSkia/SkiaHeaderBegin.h"
@@ -13,11 +68,11 @@
 namespace ui
 {
 //解码LOTTIE图片数据(解出一帧图片, 不包含图片播放时间这个字段)
-static bool DecodeImage_LOTTIE(sk_sp<skottie::Animation>& pSkAnimation,                               
-                               uint32_t nImageWidth,
-                               uint32_t nImageHeight,
-                               int32_t nFrame,
-                               AnimationFramePtr& frame)
+static bool DecodeImage_LOTTIE(sk_sp<skottie::Animation>& pSkAnimation,
+    uint32_t nImageWidth,
+    uint32_t nImageHeight,
+    int32_t nFrame,
+    AnimationFramePtr& frame)
 {
     ASSERT(pSkAnimation != nullptr);
     if (pSkAnimation == nullptr) {
@@ -108,10 +163,10 @@ Image_LOTTIE::~Image_LOTTIE()
 }
 
 bool Image_LOTTIE::LoadImageFile(std::vector<uint8_t>& fileData,
-                                 const FilePath& imageFilePath,
-                                 float fImageSizeScale,
-                                 const UiSize& rcMaxDestRectSize,
-                                 bool bAssertEnabled)
+    const FilePath& imageFilePath,
+    float fImageSizeScale,
+    const UiSize& rcMaxDestRectSize,
+    bool bAssertEnabled)
 {
     ASSERT(!fileData.empty() || !imageFilePath.IsEmpty());
     if (fileData.empty() && imageFilePath.IsEmpty()) {
@@ -286,8 +341,8 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
     }
     if ((szDestRectSize.cx > 0) || (szDestRectSize.cy > 0)) {
         bool bScaled = false;
-        float fScale = 1.0f;        
-        if ((szDestRectSize.cx > 0) && (szDestRectSize.cy > 0)) {            
+        float fScale = 1.0f;
+        if ((szDestRectSize.cx > 0) && (szDestRectSize.cy > 0)) {
             if ((szDestRectSize.cx < (int32_t)nImageWidth) && (szDestRectSize.cy < (int32_t)nImageHeight)) {
                 float fScaleX = static_cast<float>(szDestRectSize.cx) / nImageWidth;
                 float fScaleY = static_cast<float>(szDestRectSize.cy) / nImageHeight;
@@ -322,14 +377,14 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
     pAnimationFrame->m_bDataError = true;
     AnimationFramePtr frame;
     if (m_impl->m_pSkAnimation != nullptr) {
-        if(DecodeImage_LOTTIE(m_impl->m_pSkAnimation,
-                              nImageWidth,
-                              nImageHeight,
-                              nFrameIndex,
-                              frame)) {
+        if (DecodeImage_LOTTIE(m_impl->m_pSkAnimation,
+            nImageWidth,
+            nImageHeight,
+            nFrameIndex,
+            frame)) {
             if (frame != nullptr) {
                 *pAnimationFrame = *frame;
-                pAnimationFrame->SetDelayMs(GetFrameDelayMs(nFrameIndex));                
+                pAnimationFrame->SetDelayMs(GetFrameDelayMs(nFrameIndex));
                 pAnimationFrame->m_bDataError = false; //确认成功，标记无错误
             }
         }
@@ -338,3 +393,5 @@ bool Image_LOTTIE::ReadFrameData(int32_t nFrameIndex, const UiSize& szDestRectSi
 }
 
 } //namespace ui
+
+#endif

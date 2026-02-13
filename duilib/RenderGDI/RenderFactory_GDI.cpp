@@ -1,5 +1,11 @@
 #include "RenderFactory_GDI.h"
-#include "duilib/RenderGDI/GdiObjects.h"
+#include "duilib/RenderGDI/Bitmap_GDI.h"
+#include "duilib/RenderGDI/Brush_GDI.h"
+#include "duilib/RenderGDI/Font_GDI.h"
+#include "duilib/RenderGDI/FontMgr_GDI.h"
+#include "duilib/RenderGDI/Matrix_GDI.h"
+#include "duilib/RenderGDI/Path_GDI.h"
+#include "duilib/RenderGDI/Pen_GDI.h"
 #include "duilib/RenderGDI/Render_GDI.h"
 
 namespace ui {

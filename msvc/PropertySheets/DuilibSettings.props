@@ -6,8 +6,17 @@
     <!-- 公共配置 -->
     <Import Project="CommonSettings.props" />
 
-    <!-- Skia: 需要添加include路径-->
-    <Import Project="SkiaSettings.props" />
+    <!-- 统一渲染后端开关：可在外部覆盖 RenderBackend=GDI 或 SKIA -->
+    <PropertyGroup Label="Globals">
+        <RenderBackend Condition="'$(RenderBackend)'=='' and '$(Platform)'=='Win32'">GDI</RenderBackend>
+        <RenderBackend Condition="'$(RenderBackend)'=='' and '$(Platform)'=='x64'">SKIA</RenderBackend>
+        <RenderBackend Condition="'$(RenderBackend)'==''">GDI</RenderBackend>
+        <RenderBackendPreprocessorDefinitions Condition="'$(RenderBackend)'=='SKIA'">USE_RENDER_SKIA</RenderBackendPreprocessorDefinitions>
+        <RenderBackendPreprocessorDefinitions Condition="'$(RenderBackend)'=='GDI'">USE_RENDER_GDI</RenderBackendPreprocessorDefinitions>
+    </PropertyGroup>
+
+    <!-- Skia: 仅在 SKIA 后端导入 include/宏 -->
+    <Import Project="SkiaSettings.props" Condition="'$(RenderBackend)'=='SKIA'" />
 
     <!-- SDL: 需要添加include路径，功能开关宏定义: DUILIB_SDL=1 开启，DUILIB_SDL=0 关闭-->
     <Import Project="SDLSettings.props" />
@@ -25,32 +34,35 @@
     <Import Project="LibPagSettings.props" />
     
     <PropertyGroup Label="Globals">
+        <RenderSkiaIncludeDir Condition="'$(RenderBackend)'=='SKIA'">$(SkiaIncludeDir)</RenderSkiaIncludeDir>
+        <RenderSkiaPreprocessorDefinitions Condition="'$(RenderBackend)'=='SKIA'">$(SkiaPreprocessorDefinitions)</RenderSkiaPreprocessorDefinitions>
+
         <!-- Include 目录  -->
-        <DuilibIncludeDirectories>$(SolutionDir)\..;$(ProjectDir);$(SkiaIncludeDir);$(SDLIncludeDir);$(LibCefIncludeDir);$(JpegTurboIncludeDir);$(LibPagIncludeDir)</DuilibIncludeDirectories>
+        <DuilibIncludeDirectories>$(SolutionDir)\..;$(ProjectDir);$(RenderSkiaIncludeDir);$(SDLIncludeDir);$(LibCefIncludeDir);$(JpegTurboIncludeDir);$(LibPagIncludeDir)</DuilibIncludeDirectories>
     </PropertyGroup>
     
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
         <ClCompile>
             <AdditionalIncludeDirectories>$(DuilibIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>$(SkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>$(RenderBackendPreprocessorDefinitions);$(RenderSkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
         <ClCompile>
             <AdditionalIncludeDirectories>$(DuilibIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>$(SkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>$(RenderBackendPreprocessorDefinitions);$(RenderSkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
             <AdditionalIncludeDirectories>$(DuilibIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>$(SkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>$(RenderBackendPreprocessorDefinitions);$(RenderSkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
         <ClCompile>
             <AdditionalIncludeDirectories>$(DuilibIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>$(SkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>$(RenderBackendPreprocessorDefinitions);$(RenderSkiaPreprocessorDefinitions);DUILIB_SDL=$(SDLEnabled);DUILIB_WEBVIEW2=$(WebView2Enabled);DUILIB_JPEG_TURBO=$(JpegTurboEnabled);DUILIB_LIB_PAG=$(LibPagEnabled);%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
     

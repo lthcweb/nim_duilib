@@ -192,6 +192,30 @@
     <ClCompile Include="RenderGDI\Render_GDI.cpp">
       <Filter>RenderGDI\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Brush_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\DrawGDIImage.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Font_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Path_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Pen_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
       <Filter>RenderSkia</Filter>
     </ClCompile>
@@ -1019,6 +1043,30 @@
     <ClInclude Include="RenderGDI\Render_GDI.h">
       <Filter>RenderGDI\Windows</Filter>
     </ClInclude>
+    <ClInclude Include="RenderGDI\Bitmap_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Brush_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\DrawGDIImage.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\FontMgr_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Font_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Matrix_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Path_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Pen_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
     <ClInclude Include="RenderSkia\Render_Skia.h">
       <Filter>RenderSkia</Filter>
     </ClInclude>
@@ -1291,18 +1339,6 @@
     </ClInclude>
     <ClInclude Include="Utils\FilePathUtil.h">
       <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\DisplayParams.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\WindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\GLWindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\window\RasterWindowContext.h">
-      <Filter>RenderSkia\Skia</Filter>
     </ClInclude>
     <ClInclude Include="RenderSkia\Render_Skia_SDL.h">
       <Filter>RenderSkia\SDL</Filter>
@@ -1666,9 +1702,6 @@
     </ClInclude>
     <ClInclude Include="Image\APngDecoder.h">
       <Filter>Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\skia\tools\ganesh\gl\win\SkWGL.h">
-      <Filter>RenderSkia\Skia</Filter>
     </ClInclude>
     <ClInclude Include="Image\Image_PAG.h">
       <Filter>Image</Filter>
