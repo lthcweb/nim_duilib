@@ -36,8 +36,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")  # Windows
     add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
-#Skia的编译选项
-add_definitions(-DSK_GANESH -DSK_GL -DSK_RELEASE)
+#Skia的编译选项（仅Skia后端）
 
 #设置libcef目录路径
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")  # macOS
@@ -61,7 +60,9 @@ get_filename_component(SDL_SRC_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../SDL3/" 
 
 # Always include these directories
 include_directories(${DUILIB_SRC_ROOT_DIR})
-include_directories(${SKIA_SRC_ROOT_DIR})
+if(NOT DUILIB_USE_RENDER_GDI)
+    include_directories(${SKIA_SRC_ROOT_DIR})
+endif()
 include_directories("${SDL_SRC_ROOT_DIR}/include")
 
 # Conditionally include CEF directory
@@ -98,6 +99,7 @@ if(DUILIB_USE_RENDER_GDI)
 else()
     set(SELECTED_RENDER_SRC ${RENDER_SKIA_SRC})
     add_compile_definitions(USE_RENDER_SKIA=1)
+    add_compile_definitions(SK_GANESH SK_GL SK_RELEASE)
 endif()
 
 # Only include CEF sources on supported platforms (Windows, Linux, macOS)
@@ -303,9 +305,9 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
             -Wno-cast-function-type
           )
           set_source_files_properties("${DUILIB_SRC_ROOT_DIR}/duilib/third_party/libudis86/decode.c" PROPERTIES COMPILE_OPTIONS "-Wno-implicit-fallthrough")
-          if(DUILIB_HAVE_AVX2)
+          if((NOT DUILIB_USE_RENDER_GDI) AND DUILIB_HAVE_AVX2)
             set_source_files_properties("${SKIA_SRC_ROOT_DIR}/tools/window/GLWindowContext.cpp" PROPERTIES COMPILE_OPTIONS "-mavx2")
-          elseif(DUILIB_HAVE_AVX)
+          elseif((NOT DUILIB_USE_RENDER_GDI) AND DUILIB_HAVE_AVX)
             set_source_files_properties("${SKIA_SRC_ROOT_DIR}/tools/window/GLWindowContext.cpp" PROPERTIES COMPILE_OPTIONS "-mavx")
           endif()
     endif()
