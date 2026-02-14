@@ -506,6 +506,29 @@ void Render_GDI::DrawRect(const UiRectF& rc, UiColor penColor, int32_t nWidth, b
 
 void Render_GDI::DrawRect(const UiRect& rc, UiColor penColor, float fWidth, bool)
 {
+    if (rc.IsEmpty() || (fWidth <= 0.0f)) {
+        return;
+    }
+#ifdef DUILIB_BUILD_FOR_WIN
+    HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
+    if (hdc != nullptr) {
+        const int nPenWidth = std::max(1, static_cast<int>(fWidth + 0.5f));
+        HPEN hPen = ::CreatePen(PS_SOLID | PS_INSIDEFRAME,
+                                nPenWidth,
+                                RGB(penColor.GetR(), penColor.GetG(), penColor.GetB()));
+        if (hPen != nullptr) {
+            HGDIOBJ hOldPen = ::SelectObject(hdc, hPen);
+            HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetStockObject(HOLLOW_BRUSH));
+            ::Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+            ::SelectObject(hdc, hOldBrush);
+            ::SelectObject(hdc, hOldPen);
+            ::DeleteObject(hPen);
+            ReleaseRenderDC(hdc);
+            return;
+        }
+        ReleaseRenderDC(hdc);
+    }
+#endif
     FillRect(UiRect(rc.left, rc.top, rc.right, rc.top + static_cast<int>(fWidth)), penColor);
     FillRect(UiRect(rc.left, rc.bottom - static_cast<int>(fWidth), rc.right, rc.bottom), penColor);
     FillRect(UiRect(rc.left, rc.top, rc.left + static_cast<int>(fWidth), rc.bottom), penColor);
@@ -542,6 +565,23 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
 
     const uint32_t srcPixel = UiColor::MakeARGB(srcA, color.GetR(), color.GetG(), color.GetB());
     if (srcA >= 255) {
+#ifdef DUILIB_BUILD_FOR_WIN
+        HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
+        if (hdc != nullptr) {
+            HBRUSH hBrush = ::CreateSolidBrush(RGB(color.GetR(), color.GetG(), color.GetB()));
+            if (hBrush != nullptr) {
+                HGDIOBJ hOldPen = ::SelectObject(hdc, ::GetStockObject(NULL_PEN));
+                HGDIOBJ hOldBrush = ::SelectObject(hdc, hBrush);
+                ::Rectangle(hdc, clip.left, clip.top, clip.right, clip.bottom);
+                ::SelectObject(hdc, hOldBrush);
+                ::SelectObject(hdc, hOldPen);
+                ::DeleteObject(hBrush);
+                ReleaseRenderDC(hdc);
+                return;
+            }
+            ReleaseRenderDC(hdc);
+        }
+#endif
         for (int y = clip.top; y < clip.bottom; ++y) {
             for (int x = clip.left; x < clip.right; ++x) {
                 uint32_t* pDst = Pixel(x, y);
