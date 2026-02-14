@@ -525,6 +525,7 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
     if (IsEmpty() || rc.IsEmpty()) {
         return;
     }
+
     UiRect clip = rc;
     clip.Intersect(UiRect(0, 0, GetWidth(), GetHeight()));
     if (!m_clipStack.empty()) {
@@ -533,12 +534,30 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
     if (clip.IsEmpty()) {
         return;
     }
-    const uint32_t pixel = UiColor::MakeARGB(static_cast<uint8_t>(color.GetA() * uFade / 255), color.GetR(), color.GetG(), color.GetB());
+
+    const uint8_t srcA = static_cast<uint8_t>(color.GetA() * uFade / 255);
+    if (srcA == 0) {
+        return;
+    }
+
+    const uint32_t srcPixel = UiColor::MakeARGB(srcA, color.GetR(), color.GetG(), color.GetB());
+    if (srcA >= 255) {
+        for (int y = clip.top; y < clip.bottom; ++y) {
+            for (int x = clip.left; x < clip.right; ++x) {
+                uint32_t* pDst = Pixel(x, y);
+                if (pDst != nullptr) {
+                    *pDst = srcPixel;
+                }
+            }
+        }
+        return;
+    }
+
     for (int y = clip.top; y < clip.bottom; ++y) {
         for (int x = clip.left; x < clip.right; ++x) {
             uint32_t* pDst = Pixel(x, y);
             if (pDst != nullptr) {
-                *pDst = pixel;
+                *pDst = BlendPixel(*pDst, srcPixel, 255);
             }
         }
     }
