@@ -120,6 +120,41 @@ static uint32_t BlendPixel(uint32_t dst, uint32_t src, uint8_t globalAlpha)
 }
 #endif
 
+static int32_t CalcDrawImageTimes(int32_t nAvailableSpace, int32_t nImageSize, int32_t nTiledMargin, bool bFullyTiled)
+{
+    if ((nAvailableSpace <= 0) || (nImageSize <= 0)) {
+        return 0;
+    }
+    const int32_t firstImageRequired = bFullyTiled ? nImageSize : 1;
+    if (nAvailableSpace < firstImageRequired) {
+        return 0;
+    }
+
+    int32_t remainingSpace = nAvailableSpace - nImageSize;
+    int32_t drawTimes = 1;
+    if (remainingSpace <= 0) {
+        return drawTimes;
+    }
+
+    while (true) {
+        if (remainingSpace < nTiledMargin) {
+            break;
+        }
+        remainingSpace -= nTiledMargin;
+        if (remainingSpace <= 0) {
+            break;
+        }
+        if (!bFullyTiled || (remainingSpace >= nImageSize)) {
+            ++drawTimes;
+            remainingSpace -= nImageSize;
+        }
+        else {
+            break;
+        }
+    }
+    return drawTimes;
+}
+
 Render_GDI::Render_GDI(void* platformData, RenderBackendType backendType) :
     m_platformData(platformData),
     m_backendType(backendType)
@@ -245,14 +280,195 @@ bool Render_GDI::AlphaBlend(int32_t xDest, int32_t yDest, int32_t widthDest, int
     return true;
 }
 
-void Render_GDI::DrawImage(const UiRect&, IBitmap* pBitmap, const UiRect& rcDest, const UiRect&, const UiRect& rcSource, const UiRect&, uint8_t uFade, const TiledDrawParam*, bool)
+void Render_GDI::DrawImage(const UiRect& rcPaint, IBitmap* pBitmap,
+                           const UiRect& rcDest, const UiRect& rcDestCorners,
+                           const UiRect& rcSource, const UiRect& rcSourceCorners,
+                           uint8_t uFade,
+                           const TiledDrawParam* pTiledDrawParam,
+                           bool bWindowShadowMode)
 {
-    DrawImageRect(rcDest, pBitmap, rcDest, rcSource, uFade, nullptr);
+    if ((pBitmap == nullptr) || rcDest.IsEmpty() || rcSource.IsEmpty()) {
+        return;
+    }
+    UiRect rcTest;
+    if (!UiRect::Intersect(rcTest, rcPaint, rcDest)) {
+        return;
+    }
+
+    bool bTiledX = false;
+    bool bTiledY = false;
+    bool bFullTiledX = false;
+    bool bFullTiledY = false;
+    int32_t nTiledMarginX = 0;
+    int32_t nTiledMarginY = 0;
+    UiPadding rcTiledPadding;
+    if (pTiledDrawParam != nullptr) {
+        bTiledX = pTiledDrawParam->m_bTiledX;
+        bTiledY = pTiledDrawParam->m_bTiledY;
+        bFullTiledX = pTiledDrawParam->m_bFullTiledX;
+        bFullTiledY = pTiledDrawParam->m_bFullTiledY;
+        nTiledMarginX = pTiledDrawParam->m_nTiledMarginX;
+        nTiledMarginY = pTiledDrawParam->m_nTiledMarginY;
+        rcTiledPadding = pTiledDrawParam->m_rcTiledPadding;
+    }
+
+    UiRect rcDrawDest(rcDest.left + rcDestCorners.left,
+                      rcDest.top + rcDestCorners.top,
+                      rcDest.right - rcDestCorners.right,
+                      rcDest.bottom - rcDestCorners.bottom);
+    if (bTiledX || bTiledY) {
+        rcDrawDest.Deflate(rcTiledPadding);
+    }
+    UiRect rcDrawSource(rcSource.left + rcSourceCorners.left,
+                        rcSource.top + rcSourceCorners.top,
+                        rcSource.right - rcSourceCorners.right,
+                        rcSource.bottom - rcSourceCorners.bottom);
+
+    if (rcDestCorners.IsZero()) {
+        bWindowShadowMode = false;
+    }
+
+    auto drawDirect = [this, &rcPaint, pBitmap, uFade](const UiRect& drawDest, const UiRect& drawSource) {
+        UiRect rcVisible;
+        if (!UiRect::Intersect(rcVisible, rcPaint, drawDest)) {
+            return;
+        }
+        DrawImageRect(rcPaint, pBitmap, drawDest, drawSource, uFade, nullptr);
+    };
+
+    if (!bWindowShadowMode && UiRect::Intersect(rcTest, rcPaint, rcDrawDest)) {
+        if (!bTiledX && !bTiledY) {
+            drawDirect(rcDrawDest, rcDrawSource);
+        }
+        else if (bTiledX && bTiledY) {
+            const int32_t nImageWidth = rcSource.Width() - rcSourceCorners.left - rcSourceCorners.right;
+            const int32_t nImageHeight = rcSource.Height() - rcSourceCorners.top - rcSourceCorners.bottom;
+            const int32_t iTimesX = CalcDrawImageTimes(rcDrawDest.Width(), nImageWidth, nTiledMarginX, bFullTiledX);
+            const int32_t iTimesY = CalcDrawImageTimes(rcDrawDest.Height(), nImageHeight, nTiledMarginY, bFullTiledY);
+            int32_t nPosY = rcDrawDest.top;
+            for (int32_t j = 0; j < iTimesY; ++j) {
+                if (j > 0) {
+                    nPosY += nTiledMarginY;
+                }
+                int32_t nPosX = rcDrawDest.left;
+                int32_t lDestTop = nPosY;
+                int32_t lDestBottom = lDestTop + nImageHeight;
+                int32_t lDrawHeight = nImageHeight;
+                if (lDestBottom > rcDrawDest.bottom) {
+                    lDrawHeight -= (lDestBottom - rcDrawDest.bottom);
+                    lDestBottom = rcDrawDest.bottom;
+                }
+                for (int32_t i = 0; i < iTimesX; ++i) {
+                    if (i > 0) {
+                        nPosX += nTiledMarginX;
+                    }
+                    int32_t lDestLeft = nPosX;
+                    int32_t lDestRight = lDestLeft + nImageWidth;
+                    int32_t lDrawWidth = nImageWidth;
+                    if (lDestRight > rcDrawDest.right) {
+                        lDrawWidth -= (lDestRight - rcDrawDest.right);
+                        lDestRight = rcDrawDest.right;
+                    }
+                    UiRect drawDest(lDestLeft, lDestTop, lDestRight, lDestBottom);
+                    UiRect drawSource(rcDrawSource.left, rcDrawSource.top, rcDrawSource.left + lDrawWidth, rcDrawSource.top + lDrawHeight);
+                    drawDirect(drawDest, drawSource);
+                    nPosX += nImageWidth;
+                }
+                nPosY += nImageHeight;
+            }
+        }
+        else if (bTiledX) {
+            const int32_t nImageWidth = rcSource.Width() - rcSourceCorners.left - rcSourceCorners.right;
+            const int32_t iTimesX = CalcDrawImageTimes(rcDrawDest.Width(), nImageWidth, nTiledMarginX, bFullTiledX);
+            int32_t nPosX = rcDrawDest.left;
+            for (int32_t i = 0; i < iTimesX; ++i) {
+                if (i > 0) {
+                    nPosX += nTiledMarginX;
+                }
+                int32_t lDestLeft = nPosX;
+                int32_t lDestRight = lDestLeft + nImageWidth;
+                int32_t lDrawWidth = nImageWidth;
+                if (lDestRight > rcDrawDest.right) {
+                    lDrawWidth -= (lDestRight - rcDrawDest.right);
+                    lDestRight = rcDrawDest.right;
+                }
+                UiRect drawDest(lDestLeft, rcDrawDest.top, lDestRight, rcDrawDest.bottom);
+                UiRect drawSource(rcDrawSource.left, rcDrawSource.top, rcDrawSource.left + lDrawWidth, rcDrawSource.bottom);
+                drawDirect(drawDest, drawSource);
+                nPosX += nImageWidth;
+            }
+        }
+        else {
+            const int32_t nImageHeight = rcSource.Height() - rcSourceCorners.top - rcSourceCorners.bottom;
+            const int32_t iTimesY = CalcDrawImageTimes(rcDrawDest.Height(), nImageHeight, nTiledMarginY, bFullTiledY);
+            int32_t nPosY = rcDrawDest.top;
+            for (int32_t j = 0; j < iTimesY; ++j) {
+                if (j > 0) {
+                    nPosY += nTiledMarginY;
+                }
+                int32_t lDestTop = nPosY;
+                int32_t lDestBottom = lDestTop + nImageHeight;
+                int32_t lDrawHeight = nImageHeight;
+                if (lDestBottom > rcDrawDest.bottom) {
+                    lDrawHeight -= (lDestBottom - rcDrawDest.bottom);
+                    lDestBottom = rcDrawDest.bottom;
+                }
+                UiRect drawDest(rcDrawDest.left, lDestTop, rcDrawDest.right, lDestBottom);
+                UiRect drawSource(rcDrawSource.left, rcDrawSource.top, rcDrawSource.right, rcDrawSource.top + lDrawHeight);
+                drawDirect(drawDest, drawSource);
+                nPosY += nImageHeight;
+            }
+        }
+    }
+
+    auto drawPart = [drawDirect](int32_t dl, int32_t dt, int32_t dr, int32_t db,
+                                 int32_t sl, int32_t st, int32_t sr, int32_t sb) {
+        UiRect drawDest(dl, dt, dr, db);
+        UiRect drawSource(sl, st, sr, sb);
+        if (!drawDest.IsEmpty() && !drawSource.IsEmpty()) {
+            drawDirect(drawDest, drawSource);
+        }
+    };
+
+    drawPart(rcDest.left, rcDest.top,
+             rcDest.left + rcDestCorners.left, rcDest.top + rcDestCorners.top,
+             rcSource.left, rcSource.top,
+             rcSource.left + rcSourceCorners.left, rcSource.top + rcSourceCorners.top);
+    drawPart(rcDest.left + rcDestCorners.left, rcDest.top,
+             rcDest.right - rcDestCorners.right, rcDest.top + rcDestCorners.top,
+             rcSource.left + rcSourceCorners.left, rcSource.top,
+             rcSource.right - rcSourceCorners.right, rcSource.top + rcSourceCorners.top);
+    drawPart(rcDest.right - rcDestCorners.right, rcDest.top,
+             rcDest.right, rcDest.top + rcDestCorners.top,
+             rcSource.right - rcSourceCorners.right, rcSource.top,
+             rcSource.right, rcSource.top + rcSourceCorners.top);
+    drawPart(rcDest.left, rcDest.top + rcDestCorners.top,
+             rcDest.left + rcDestCorners.left, rcDest.bottom - rcDestCorners.bottom,
+             rcSource.left, rcSource.top + rcSourceCorners.top,
+             rcSource.left + rcSourceCorners.left, rcSource.bottom - rcSourceCorners.bottom);
+    drawPart(rcDest.right - rcDestCorners.right, rcDest.top + rcDestCorners.top,
+             rcDest.right, rcDest.bottom - rcDestCorners.bottom,
+             rcSource.right - rcSourceCorners.right, rcSource.top + rcSourceCorners.top,
+             rcSource.right, rcSource.bottom - rcSourceCorners.bottom);
+    drawPart(rcDest.left, rcDest.bottom - rcDestCorners.bottom,
+             rcDest.left + rcDestCorners.left, rcDest.bottom,
+             rcSource.left, rcSource.bottom - rcSourceCorners.bottom,
+             rcSource.left + rcSourceCorners.left, rcSource.bottom);
+    drawPart(rcDest.left + rcDestCorners.left, rcDest.bottom - rcDestCorners.bottom,
+             rcDest.right - rcDestCorners.right, rcDest.bottom,
+             rcSource.left + rcSourceCorners.left, rcSource.bottom - rcSourceCorners.bottom,
+             rcSource.right - rcSourceCorners.right, rcSource.bottom);
+    drawPart(rcDest.right - rcDestCorners.right, rcDest.bottom - rcDestCorners.bottom,
+             rcDest.right, rcDest.bottom,
+             rcSource.right - rcSourceCorners.right, rcSource.bottom - rcSourceCorners.bottom,
+             rcSource.right, rcSource.bottom);
 }
 
-void Render_GDI::DrawImage(const UiRect&, IBitmap* pBitmap, const UiRect& rcDest, const UiRect& rcSource, uint8_t uFade, const TiledDrawParam*, bool)
+void Render_GDI::DrawImage(const UiRect& rcPaint, IBitmap* pBitmap, const UiRect& rcDest, const UiRect& rcSource, uint8_t uFade, const TiledDrawParam* pTiledDrawParam, bool bWindowShadowMode)
 {
-    DrawImageRect(rcDest, pBitmap, rcDest, rcSource, uFade, nullptr);
+    UiRect rcDestCorners;
+    UiRect rcSourceCorners;
+    DrawImage(rcPaint, pBitmap, rcDest, rcDestCorners, rcSource, rcSourceCorners, uFade, pTiledDrawParam, bWindowShadowMode);
 }
 
 void Render_GDI::DrawImageRect(const UiRect&, IBitmap* pBitmap, const UiRect& rcDest, const UiRect& rcSource, uint8_t uFade, IMatrix* pMatrix)
@@ -311,6 +527,12 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
     }
     UiRect clip = rc;
     clip.Intersect(UiRect(0, 0, GetWidth(), GetHeight()));
+    if (!m_clipStack.empty()) {
+        clip.Intersect(m_clipStack.back());
+    }
+    if (clip.IsEmpty()) {
+        return;
+    }
     const uint32_t pixel = UiColor::MakeARGB(static_cast<uint8_t>(color.GetA() * uFade / 255), color.GetR(), color.GetG(), color.GetB());
     for (int y = clip.top; y < clip.bottom; ++y) {
         for (int x = clip.left; x < clip.right; ++x) {
