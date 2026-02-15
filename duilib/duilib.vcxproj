@@ -209,24 +209,21 @@
   <ItemGroup>
     <ClCompile Include="..\..\skia\tools\ganesh\gl\win\SkWGL_win.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-<WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\skia\tools\window\GLWindowContext.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-<WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\skia\tools\window\WindowContext.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-<WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
@@ -406,54 +403,41 @@
     <ClCompile Include="Layout\VirtualVTileLayout.cpp" />
     <ClCompile Include="Layout\VLayout.cpp" />
     <ClCompile Include="Layout\VTileLayout.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI.cpp" />
     <ClCompile Include="RenderSkia\Bitmap_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Brush_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\DrawRichText.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\DrawSkiaImage.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\FontMgr_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Font_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\HorizontalDrawText.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Matrix_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Path_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Pen_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\RenderFactory_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
-    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="RenderGDI\Render_GDI.cpp">
+    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
@@ -482,44 +466,34 @@
     </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia_SDL.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia_Windows.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\SkGLWindowContext_Windows.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\SkRasterWindowContext_SDL.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\SkRasterWindowContext_Windows.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\SkTextBox.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\SkUtils.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\VerticalDrawText.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="RenderSkia\WindowRgn_Windows.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
-
-</ClCompile>
+    </ClCompile>
     <ClCompile Include="Render\AutoClip.cpp" />
     <ClCompile Include="Render\BitmapAlpha.cpp" />
     <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
