@@ -1,6 +1,5 @@
 // Render_GDI.cpp 的补充部分 - 其他辅助函数
 
-#ifdef DUILIB_BUILD_FOR_WIN
 
 #include "Render_GDI.h"
 #include "Bitmap_GDI.h"
@@ -423,4 +422,3 @@ void Render_GDI::ReleaseRenderDC(HDC hdc)
 
 } // namespace ui
 
-#endif // DUILIB_BUILD_FOR_WIN

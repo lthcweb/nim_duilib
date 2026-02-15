@@ -909,6 +909,21 @@
     <ClCompile Include="RenderGDI\Pen_GDI.cpp">
       <Filter>RenderGDI</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawImage.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawPath.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawRect.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_Misc.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_Text.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation\AnimationManager.h">

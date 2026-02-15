@@ -1,6 +1,5 @@
 // Render_GDI.cpp 的补充部分 - 图片绘制（九宫格）
 
-#ifdef DUILIB_BUILD_FOR_WIN
 
 #include "Render_GDI.h"
 #include "Bitmap_GDI.h"
@@ -434,4 +433,3 @@ void Render_GDI::DrawImageRect(const UiRect& rcPaint, IBitmap* pBitmap,
 
 } // namespace ui
 
-#endif // DUILIB_BUILD_FOR_WIN

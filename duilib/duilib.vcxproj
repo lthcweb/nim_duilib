@@ -414,6 +414,11 @@
     <ClCompile Include="RenderGDI\Pen_GDI.cpp" />
     <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp" />
     <ClCompile Include="RenderGDI\Render_GDI.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI_DrawImage.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI_DrawPath.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI_DrawRect.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI_Misc.cpp" />
+    <ClCompile Include="RenderGDI\Render_GDI_Text.cpp" />
     <ClCompile Include="RenderSkia\Bitmap_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
     </ClCompile>

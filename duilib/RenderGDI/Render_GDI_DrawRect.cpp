@@ -1,6 +1,7 @@
 // Render_GDI.cpp 的补充部分 - 矩形和圆形绘制
-
-#ifdef DUILIB_BUILD_FOR_WIN
+#include "Render_GDI.h"
+#include "Pen_GDI.h"
+#include "Brush_GDI.h"
 
 namespace ui {
 
@@ -464,4 +465,3 @@ void Render_GDI::FillCircle(const UiPoint& centerPt, int32_t radius, UiColor dwC
 
 } // namespace ui
 
-#endif // DUILIB_BUILD_FOR_WIN

@@ -1,6 +1,5 @@
 // Render_GDI.cpp 的补充部分 - 路径和弧形绘制
 
-#ifdef DUILIB_BUILD_FOR_WIN
 
 #include "Render_GDI.h"
 #include "Path_GDI.h"
@@ -10,9 +9,9 @@
 namespace ui {
 
 void Render_GDI::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, bool useCenter,
-                        const IPen* pen,
-                        UiColor* gradientColor,
-                        const UiRect* gradientRect)
+    const IPen* pen,
+    UiColor* gradientColor,
+    const UiRect* gradientRect)
 {
     ASSERT(pen != nullptr);
     if (pen == nullptr || m_pGraphics == nullptr) {
@@ -25,24 +24,28 @@ void Render_GDI::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, b
     }
 
     Gdiplus::RectF rect(rc.left + m_pPointOrg->X,
-                       rc.top + m_pPointOrg->Y,
-                       static_cast<Gdiplus::REAL>(rc.Width()),
-                       static_cast<Gdiplus::REAL>(rc.Height()));
+        rc.top + m_pPointOrg->Y,
+        static_cast<Gdiplus::REAL>(rc.Width()),
+        static_cast<Gdiplus::REAL>(rc.Height()));
 
     if (useCenter) {
         // 使用扇形（包含中心点）
         Gdiplus::GraphicsPath path;
         Gdiplus::PointF center(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
         path.AddArc(rect, startAngle, sweepAngle);
-        path.AddLine(path.GetLastPoint(), center);
+
+        // 获取路径的最后一个点
+        Gdiplus::PointF lastPoint;
+        path.GetLastPoint(&lastPoint);  // 注意：需要传入指针
+        path.AddLine(lastPoint, center);
         path.CloseFigure();
 
         if (gradientColor != nullptr && gradientRect != nullptr) {
             // 使用渐变画刷
             Gdiplus::RectF gradRect(gradientRect->left + m_pPointOrg->X,
-                                   gradientRect->top + m_pPointOrg->Y,
-                                   static_cast<Gdiplus::REAL>(gradientRect->Width()),
-                                   static_cast<Gdiplus::REAL>(gradientRect->Height()));
+                gradientRect->top + m_pPointOrg->Y,
+                static_cast<Gdiplus::REAL>(gradientRect->Width()),
+                static_cast<Gdiplus::REAL>(gradientRect->Height()));
 
             Gdiplus::Color color1 = UiColorToGdiplusColor(pen->GetColor());
             Gdiplus::Color color2 = UiColorToGdiplusColor(*gradientColor);
@@ -59,12 +62,12 @@ void Render_GDI::DrawArc(const UiRect& rc, float startAngle, float sweepAngle, b
         }
     }
     else {
-        // 只绘制弧线
+        // 只绘制弧线（这部分不需要修改）
         if (gradientColor != nullptr && gradientRect != nullptr) {
             Gdiplus::RectF gradRect(gradientRect->left + m_pPointOrg->X,
-                                   gradientRect->top + m_pPointOrg->Y,
-                                   static_cast<Gdiplus::REAL>(gradientRect->Width()),
-                                   static_cast<Gdiplus::REAL>(gradientRect->Height()));
+                gradientRect->top + m_pPointOrg->Y,
+                static_cast<Gdiplus::REAL>(gradientRect->Width()),
+                static_cast<Gdiplus::REAL>(gradientRect->Height()));
 
             Gdiplus::Color color1 = UiColorToGdiplusColor(pen->GetColor());
             Gdiplus::Color color2 = UiColorToGdiplusColor(*gradientColor);
@@ -203,4 +206,3 @@ void Render_GDI::FillPath(const IPath* path, const UiRect& rc, UiColor dwColor, 
 
 } // namespace ui
 
-#endif // DUILIB_BUILD_FOR_WIN

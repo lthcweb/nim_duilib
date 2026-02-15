@@ -1,6 +1,5 @@
 // Render_GDI.cpp 的补充部分 - 文本绘制
 
-#ifdef DUILIB_BUILD_FOR_WIN
 
 #include "Render_GDI.h"
 #include "Font_GDI.h"
@@ -314,4 +313,3 @@ size_t Render_GDI::GetUTF16CharCount(const DStringW::value_type* srcPtr, size_t 
 
 } // namespace ui
 
-#endif // DUILIB_BUILD_FOR_WIN
