@@ -189,9 +189,6 @@
     <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
       <Filter>RenderGDI</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGDI\Render_GDI.cpp">
-      <Filter>RenderGDI\Windows</Filter>
-    </ClCompile>
     <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
       <Filter>RenderGDI</Filter>
     </ClCompile>
@@ -911,6 +908,9 @@
     </ClCompile>
     <ClCompile Include="CEFControl\internal\CefRegisteredFunctions.cpp">
       <Filter>CEFControl\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI.cpp">
+      <Filter>RenderGDI\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

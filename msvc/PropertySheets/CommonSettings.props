@@ -5,7 +5,7 @@
 
 	<!-- 切换渲染模式，SKIA/GDI -->
 	<PropertyGroup>
-	  <RenderBackend>GDI</RenderBackend>
+	  <RenderBackend>SKIA</RenderBackend>
 	</PropertyGroup>
 
     <!-- duilib项目，所有工程的输出公共配置 -->
