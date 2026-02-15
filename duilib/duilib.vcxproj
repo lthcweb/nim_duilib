@@ -403,22 +403,54 @@
     <ClCompile Include="Layout\VirtualVTileLayout.cpp" />
     <ClCompile Include="Layout\VLayout.cpp" />
     <ClCompile Include="Layout\VTileLayout.cpp" />
-    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Brush_GDI.cpp" />
-    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Font_GDI.cpp" />
-    <ClCompile Include="RenderGDI\GdiObjects.cpp" />
-    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp" />
-    <ClCompile Include="RenderGDI\Matrix_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Path_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Pen_GDI.cpp" />
-    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI_DrawImage.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI_DrawPath.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI_DrawRect.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI_Misc.cpp" />
-    <ClCompile Include="RenderGDI\Render_GDI_Text.cpp" />
+    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Brush_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Font_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiObjects.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Path_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Pen_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawImage.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawPath.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_DrawRect.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_Misc.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Render_GDI_Text.cpp">
+      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="RenderSkia\Bitmap_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
     </ClCompile>
