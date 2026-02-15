@@ -10,6 +10,9 @@
 
 #ifdef DUILIB_BUILD_FOR_WIN
 #include <windows.h>
+#ifndef USE_GDI_RENDER
+#include <gdiplus.h>
+#endif
 #endif
 
 namespace ui {
@@ -77,6 +80,28 @@ static HFONT CreateGDIFont(const IFont* pFont)
                         pFont->FontName().c_str());
 }
 
+#ifndef USE_GDI_RENDER
+static inline Gdiplus::Color ToGdiPlusColor(UiColor color)
+{
+    return Gdiplus::Color(color.GetA(), color.GetR(), color.GetG(), color.GetB());
+}
+
+static void AddRoundRectPath(Gdiplus::GraphicsPath& path, const Gdiplus::RectF& rect, float rx, float ry)
+{
+    const float w = std::max(0.0f, std::min(rx * 2.0f, rect.Width));
+    const float h = std::max(0.0f, std::min(ry * 2.0f, rect.Height));
+    if ((w <= 0.0f) || (h <= 0.0f)) {
+        path.AddRectangle(rect);
+        return;
+    }
+
+    path.AddArc(rect.X, rect.Y, w, h, 180.0f, 90.0f);
+    path.AddArc(rect.GetRight() - w, rect.Y, w, h, 270.0f, 90.0f);
+    path.AddArc(rect.GetRight() - w, rect.GetBottom() - h, w, h, 0.0f, 90.0f);
+    path.AddArc(rect.X, rect.GetBottom() - h, w, h, 90.0f, 90.0f);
+    path.CloseFigure();
+}
+#endif
 
 static uint32_t BlendPixel(uint32_t dst, uint32_t src, uint8_t globalAlpha)
 {
@@ -512,6 +537,7 @@ void Render_GDI::DrawRect(const UiRect& rc, UiColor penColor, float fWidth, bool
 #ifdef DUILIB_BUILD_FOR_WIN
     HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
     if (hdc != nullptr) {
+#ifdef USE_GDI_RENDER
         const int nPenWidth = std::max(1, static_cast<int>(fWidth + 0.5f));
         HPEN hPen = ::CreatePen(PS_SOLID | PS_INSIDEFRAME,
                                 nPenWidth,
@@ -526,6 +552,19 @@ void Render_GDI::DrawRect(const UiRect& rc, UiColor penColor, float fWidth, bool
             ReleaseRenderDC(hdc);
             return;
         }
+#else
+        Gdiplus::Graphics graphics(hdc);
+        Gdiplus::Pen pen(ToGdiPlusColor(penColor), std::max(1.0f, fWidth));
+        pen.SetAlignment(Gdiplus::PenAlignmentInset);
+        pen.SetDashStyle(Gdiplus::DashStyleSolid);
+        graphics.DrawRectangle(&pen,
+                               static_cast<Gdiplus::REAL>(rc.left),
+                               static_cast<Gdiplus::REAL>(rc.top),
+                               static_cast<Gdiplus::REAL>(std::max(0, rc.Width() - 1)),
+                               static_cast<Gdiplus::REAL>(std::max(0, rc.Height() - 1)));
+        ReleaseRenderDC(hdc);
+        return;
+#endif
         ReleaseRenderDC(hdc);
     }
 #endif
@@ -568,6 +607,7 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
 #ifdef DUILIB_BUILD_FOR_WIN
         HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
         if (hdc != nullptr) {
+#ifdef USE_GDI_RENDER
             HBRUSH hBrush = ::CreateSolidBrush(RGB(color.GetR(), color.GetG(), color.GetB()));
             if (hBrush != nullptr) {
                 HGDIOBJ hOldPen = ::SelectObject(hdc, ::GetStockObject(NULL_PEN));
@@ -579,6 +619,17 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
                 ReleaseRenderDC(hdc);
                 return;
             }
+#else
+            Gdiplus::Graphics graphics(hdc);
+            Gdiplus::SolidBrush brush(Gdiplus::Color(255, color.GetR(), color.GetG(), color.GetB()));
+            graphics.FillRectangle(&brush,
+                                   static_cast<Gdiplus::REAL>(clip.left),
+                                   static_cast<Gdiplus::REAL>(clip.top),
+                                   static_cast<Gdiplus::REAL>(clip.Width()),
+                                   static_cast<Gdiplus::REAL>(clip.Height()));
+            ReleaseRenderDC(hdc);
+            return;
+#endif
             ReleaseRenderDC(hdc);
         }
 #endif
@@ -606,12 +657,72 @@ void Render_GDI::FillRect(const UiRect& rc, UiColor color, uint8_t uFade)
 void Render_GDI::FillRect(const UiRectF& rc, UiColor dwColor, uint8_t uFade) { FillRect(UiRect(static_cast<int>(rc.left), static_cast<int>(rc.top), static_cast<int>(rc.right), static_cast<int>(rc.bottom)), dwColor, uFade); }
 void Render_GDI::FillRect(const UiRect& rc, UiColor dwColor, UiColor, int8_t, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
 void Render_GDI::FillRect(const UiRectF& rc, UiColor dwColor, UiColor, int8_t, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
-void Render_GDI::DrawRoundRect(const UiRect& rc, float, float, UiColor penColor, int32_t nWidth) { DrawRect(rc, penColor, nWidth); }
-void Render_GDI::DrawRoundRect(const UiRectF& rc, float, float, UiColor penColor, int32_t nWidth) { DrawRect(rc, penColor, nWidth); }
-void Render_GDI::DrawRoundRect(const UiRect& rc, float, float, UiColor penColor, float fWidth) { DrawRect(rc, penColor, fWidth); }
-void Render_GDI::DrawRoundRect(const UiRectF& rc, float, float, UiColor penColor, float fWidth) { DrawRect(rc, penColor, fWidth); }
-void Render_GDI::DrawRoundRect(const UiRect& rc, float, float, IPen* pen) { DrawRect(rc, pen); }
-void Render_GDI::DrawRoundRect(const UiRectF& rc, float, float, IPen* pen) { DrawRect(rc, pen); }
+void Render_GDI::DrawRoundRect(const UiRect& rc, float rx, float ry, UiColor penColor, int32_t nWidth) { DrawRoundRect(rc, rx, ry, penColor, static_cast<float>(nWidth)); }
+void Render_GDI::DrawRoundRect(const UiRectF& rc, float rx, float ry, UiColor penColor, int32_t nWidth) { DrawRoundRect(rc, rx, ry, penColor, static_cast<float>(nWidth)); }
+void Render_GDI::DrawRoundRect(const UiRect& rc, float rx, float ry, UiColor penColor, float fWidth)
+{
+    DrawRoundRect(UiRectF(static_cast<float>(rc.left), static_cast<float>(rc.top), static_cast<float>(rc.right), static_cast<float>(rc.bottom)), rx, ry, penColor, fWidth);
+}
+void Render_GDI::DrawRoundRect(const UiRectF& rc, float rx, float ry, UiColor penColor, float fWidth)
+{
+    if (rc.IsEmpty() || (fWidth <= 0.0f)) {
+        return;
+    }
+#ifdef DUILIB_BUILD_FOR_WIN
+    HDC hdc = GetRenderDC(static_cast<HWND>(m_platformData));
+    if (hdc != nullptr) {
+#ifdef USE_GDI_RENDER
+        const int nPenWidth = std::max(1, static_cast<int>(fWidth + 0.5f));
+        HPEN hPen = ::CreatePen(PS_SOLID | PS_INSIDEFRAME,
+                                nPenWidth,
+                                RGB(penColor.GetR(), penColor.GetG(), penColor.GetB()));
+        if (hPen != nullptr) {
+            HGDIOBJ hOldPen = ::SelectObject(hdc, hPen);
+            HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetStockObject(HOLLOW_BRUSH));
+            ::RoundRect(hdc,
+                        static_cast<int>(rc.left), static_cast<int>(rc.top),
+                        static_cast<int>(rc.right), static_cast<int>(rc.bottom),
+                        std::max(0, static_cast<int>(rx * 2.0f)),
+                        std::max(0, static_cast<int>(ry * 2.0f)));
+            ::SelectObject(hdc, hOldBrush);
+            ::SelectObject(hdc, hOldPen);
+            ::DeleteObject(hPen);
+            ReleaseRenderDC(hdc);
+            return;
+        }
+#else
+        Gdiplus::Graphics graphics(hdc);
+        Gdiplus::Pen pen(ToGdiPlusColor(penColor), std::max(1.0f, fWidth));
+        pen.SetAlignment(Gdiplus::PenAlignmentInset);
+        pen.SetDashStyle(Gdiplus::DashStyleSolid);
+        Gdiplus::GraphicsPath path;
+        AddRoundRectPath(path,
+                         Gdiplus::RectF(static_cast<Gdiplus::REAL>(rc.left),
+                                        static_cast<Gdiplus::REAL>(rc.top),
+                                        static_cast<Gdiplus::REAL>(rc.Width() - 1.0f),
+                                        static_cast<Gdiplus::REAL>(rc.Height() - 1.0f)),
+                         rx, ry);
+        graphics.DrawPath(&pen, &path);
+        ReleaseRenderDC(hdc);
+        return;
+#endif
+        ReleaseRenderDC(hdc);
+    }
+#endif
+    DrawRect(UiRect(static_cast<int>(rc.left), static_cast<int>(rc.top), static_cast<int>(rc.right), static_cast<int>(rc.bottom)), penColor, fWidth);
+}
+void Render_GDI::DrawRoundRect(const UiRect& rc, float rx, float ry, IPen* pen)
+{
+    if (pen != nullptr) {
+        DrawRoundRect(rc, rx, ry, pen->GetColor(), pen->GetWidth());
+    }
+}
+void Render_GDI::DrawRoundRect(const UiRectF& rc, float rx, float ry, IPen* pen)
+{
+    if (pen != nullptr) {
+        DrawRoundRect(rc, rx, ry, pen->GetColor(), pen->GetWidth());
+    }
+}
 void Render_GDI::FillRoundRect(const UiRect& rc, float, float, UiColor dwColor, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
 void Render_GDI::FillRoundRect(const UiRectF& rc, float, float, UiColor dwColor, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
 void Render_GDI::FillRoundRect(const UiRect& rc, float, float, UiColor dwColor, UiColor, int8_t, uint8_t uFade) { FillRect(rc, dwColor, uFade); }
