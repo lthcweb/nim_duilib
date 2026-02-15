@@ -403,6 +403,16 @@
     <ClCompile Include="Layout\VirtualVTileLayout.cpp" />
     <ClCompile Include="Layout\VLayout.cpp" />
     <ClCompile Include="Layout\VTileLayout.cpp" />
+    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp" />
+    <ClCompile Include="RenderGDI\Brush_GDI.cpp" />
+    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp" />
+    <ClCompile Include="RenderGDI\Font_GDI.cpp" />
+    <ClCompile Include="RenderGDI\GdiObjects.cpp" />
+    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp" />
+    <ClCompile Include="RenderGDI\Matrix_GDI.cpp" />
+    <ClCompile Include="RenderGDI\Path_GDI.cpp" />
+    <ClCompile Include="RenderGDI\Pen_GDI.cpp" />
+    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp" />
     <ClCompile Include="RenderGDI\Render_GDI.cpp" />
     <ClCompile Include="RenderSkia\Bitmap_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
@@ -437,33 +447,6 @@
     <ClCompile Include="RenderSkia\RenderFactory_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Brush_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\DrawGDIImage.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Font_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Path_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Pen_GDI.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
       <ExcludedFromBuild Condition="'$(RenderBackend)'=='GDI'">true</ExcludedFromBuild>
     </ClCompile>
@@ -496,12 +479,6 @@
     </ClCompile>
     <ClCompile Include="Render\AutoClip.cpp" />
     <ClCompile Include="Render\BitmapAlpha.cpp" />
-    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\GdiObjects.cpp">
-      <ExcludedFromBuild Condition="'$(RenderBackend)'=='SKIA'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="third_party\convert_utf\ConvertUTF.cpp" />
     <ClCompile Include="third_party\giflib\dgif_lib.c">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
@@ -855,6 +832,18 @@
     <ClInclude Include="Layout\VirtualVTileLayout.h" />
     <ClInclude Include="Layout\VLayout.h" />
     <ClInclude Include="Layout\VTileLayout.h" />
+    <ClInclude Include="RenderGDI\Bitmap_GDI.h" />
+    <ClInclude Include="RenderGDI\Brush_GDI.h" />
+    <ClInclude Include="RenderGDI\FontMgr_GDI.h" />
+    <ClInclude Include="RenderGDI\Font_GDI.h" />
+    <ClInclude Include="RenderGDI\GdiObjects.h" />
+    <ClInclude Include="RenderGDI\GDIPlus_defs.h" />
+    <ClInclude Include="RenderGDI\GdiRenderHelper.h" />
+    <ClInclude Include="RenderGDI\Matrix_GDI.h" />
+    <ClInclude Include="RenderGDI\Path_GDI.h" />
+    <ClInclude Include="RenderGDI\Pen_GDI.h" />
+    <ClInclude Include="RenderGDI\RenderFactory_GDI.h" />
+    <ClInclude Include="RenderGDI\Render_GDI.h" />
     <ClInclude Include="RenderSkia\Bitmap_Skia.h" />
     <ClInclude Include="RenderSkia\Brush_Skia.h" />
     <ClInclude Include="RenderSkia\DrawRichText.h" />
@@ -866,16 +855,6 @@
     <ClInclude Include="RenderSkia\Path_Skia.h" />
     <ClInclude Include="RenderSkia\Pen_Skia.h" />
     <ClInclude Include="RenderSkia\RenderFactory_Skia.h" />
-    <ClInclude Include="RenderGDI\RenderFactory_GDI.h" />
-    <ClInclude Include="RenderGDI\Render_GDI.h" />
-    <ClInclude Include="RenderGDI\Bitmap_GDI.h" />
-    <ClInclude Include="RenderGDI\Brush_GDI.h" />
-    <ClInclude Include="RenderGDI\DrawGDIImage.h" />
-    <ClInclude Include="RenderGDI\FontMgr_GDI.h" />
-    <ClInclude Include="RenderGDI\Font_GDI.h" />
-    <ClInclude Include="RenderGDI\Matrix_GDI.h" />
-    <ClInclude Include="RenderGDI\Path_GDI.h" />
-    <ClInclude Include="RenderGDI\Pen_GDI.h" />
     <ClInclude Include="RenderSkia\Render_Skia.h" />
     <ClInclude Include="RenderSkia\Render_Skia_SDL.h" />
     <ClInclude Include="RenderSkia\Render_Skia_Windows.h" />
@@ -890,8 +869,6 @@
     <ClInclude Include="RenderSkia\WindowRgn_Windows.h" />
     <ClInclude Include="Render\AutoClip.h" />
     <ClInclude Include="Render\BitmapAlpha.h" />
-    <ClInclude Include="RenderGDI\GdiRenderHelper.h" />
-    <ClInclude Include="RenderGDI\GdiObjects.h" />
     <ClInclude Include="Render\IRender.h" />
     <ClInclude Include="third_party\convert_utf\ConvertUTF.h" />
     <ClInclude Include="third_party\giflib\gif_hash.h" />

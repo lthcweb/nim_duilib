@@ -186,33 +186,6 @@
     <ClCompile Include="RenderSkia\RenderFactory_Skia.cpp">
       <Filter>RenderSkia</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Brush_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\DrawGDIImage.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Font_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Path_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\Pen_GDI.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
     <ClCompile Include="RenderSkia\Render_Skia.cpp">
       <Filter>RenderSkia</Filter>
     </ClCompile>
@@ -221,12 +194,6 @@
     </ClCompile>
     <ClCompile Include="Render\BitmapAlpha.cpp">
       <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
-      <Filter>RenderGDI</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGDI\GdiObjects.cpp">
-      <Filter>RenderGDI</Filter>
     </ClCompile>
     <ClCompile Include="RenderSkia\Pen_Skia.cpp">
       <Filter>RenderSkia</Filter>
@@ -909,8 +876,38 @@
     <ClCompile Include="CEFControl\internal\CefRegisteredFunctions.cpp">
       <Filter>CEFControl\internal</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGDI\RenderFactory_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
     <ClCompile Include="RenderGDI\Render_GDI.cpp">
-      <Filter>RenderGDI\Windows</Filter>
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Bitmap_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Brush_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Font_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\FontMgr_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiObjects.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\GdiRenderHelper.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Matrix_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Path_GDI.cpp">
+      <Filter>RenderGDI</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGDI\Pen_GDI.cpp">
+      <Filter>RenderGDI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1037,36 +1034,6 @@
     <ClInclude Include="RenderSkia\RenderFactory_Skia.h">
       <Filter>RenderSkia</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGDI\RenderFactory_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Render_GDI.h">
-      <Filter>RenderGDI\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Bitmap_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Brush_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\DrawGDIImage.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\FontMgr_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Font_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Matrix_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Path_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\Pen_GDI.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
     <ClInclude Include="RenderSkia\Render_Skia.h">
       <Filter>RenderSkia</Filter>
     </ClInclude>
@@ -1075,12 +1042,6 @@
     </ClInclude>
     <ClInclude Include="Render\BitmapAlpha.h">
       <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\GdiRenderHelper.h">
-      <Filter>RenderGDI</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGDI\GdiObjects.h">
-      <Filter>RenderGDI</Filter>
     </ClInclude>
     <ClInclude Include="RenderSkia\Pen_Skia.h">
       <Filter>RenderSkia</Filter>
@@ -1870,6 +1831,42 @@
     </ClInclude>
     <ClInclude Include="CEFControl\internal\CefRegisteredFunctions.h">
       <Filter>CEFControl\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\RenderFactory_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Render_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Bitmap_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Brush_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Font_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\FontMgr_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\GdiObjects.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\GdiRenderHelper.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Matrix_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Path_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\Pen_GDI.h">
+      <Filter>RenderGDI</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGDI\GDIPlus_defs.h">
+      <Filter>RenderGDI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

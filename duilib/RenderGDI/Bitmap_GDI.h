@@ -1,32 +1,55 @@
-#ifndef UI_RENDER_GDI_BITMAP_GDI_H_
-#define UI_RENDER_GDI_BITMAP_GDI_H_
+#ifndef UI_RENDER_BITMAP_GDI_H_
+#define UI_RENDER_BITMAP_GDI_H_
 
 #include "duilib/Render/IRender.h"
-#include <vector>
 
-namespace ui {
+#ifdef DUILIB_BUILD_FOR_WIN
 
-class Bitmap_GDI : public IBitmap {
+#include "GDIPlus_defs.h"
+
+namespace ui
+{
+
+/** GDI+ 位图实现类
+*/
+class UILIB_API Bitmap_GDI : public IBitmap
+{
 public:
-    bool Init(uint32_t nWidth, uint32_t nHeight,
-              const void* pPixelBits, float fImageSizeScale = 1.0f,
-              BitmapAlphaType alphaType = BitmapAlphaType::kPremul_SkAlphaType) override;
-    uint32_t GetWidth() const override;
-    uint32_t GetHeight() const override;
-    UiSize GetSize() const override;
-    void* LockPixelBits() override;
-    void UnLockPixelBits() override;
-    IBitmap* Clone() override;
+    Bitmap_GDI();
+    virtual ~Bitmap_GDI();
 
-    uint32_t* GetBits();
-    const uint32_t* GetBits() const;
+    Bitmap_GDI(const Bitmap_GDI&) = delete;
+    Bitmap_GDI& operator=(const Bitmap_GDI&) = delete;
+
+public:
+    virtual bool Init(uint32_t nWidth, uint32_t nHeight,
+        const void* pPixelBits, float fImageSizeScale = 1.0f,
+        BitmapAlphaType alphaType = BitmapAlphaType::kPremul_SkAlphaType) override;
+
+    virtual uint32_t GetWidth() const override;
+    virtual uint32_t GetHeight() const override;
+    virtual UiSize GetSize() const override;
+
+    virtual void* LockPixelBits() override;
+    virtual void UnLockPixelBits() override;
+
+    virtual IBitmap* Clone() override;
+
+public:
+    /** 获取 GDI+ Bitmap 对象
+    */
+    Gdiplus::Bitmap* GetBitmap() const { return m_pBitmap; }
 
 private:
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
-    std::vector<uint32_t> m_bits;
+    Gdiplus::Bitmap* m_pBitmap;
+    uint32_t m_nWidth;
+    uint32_t m_nHeight;
+    float m_fImageSizeScale;
+    Gdiplus::BitmapData* m_pLockedBitmapData;
 };
 
 } // namespace ui
 
-#endif
+#endif // DUILIB_BUILD_FOR_WIN
+
+#endif // UI_RENDER_BITMAP_GDI_H_

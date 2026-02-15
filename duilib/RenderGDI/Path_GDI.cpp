@@ -1,70 +1,216 @@
-#include "duilib/RenderGDI/Path_GDI.h"
+#include "Path_GDI.h"
+#include "Matrix_GDI.h"
+#include "Pen_GDI.h"
 
-#include <algorithm>
+#ifdef DUILIB_BUILD_FOR_WIN
 
 namespace ui {
 
-void Path_GDI::SetFillType(FillType mode) { m_fillType = mode; }
-IPath::FillType Path_GDI::GetFillType() { return m_fillType; }
-void Path_GDI::AddLine(int x1, int y1, int x2, int y2) { m_bounds.Union(UiRect(x1, y1, x2, y2)); }
-
-void Path_GDI::AddLines(const UiPoint* points, int count)
+Path_GDI::Path_GDI()
+    : m_pPath(nullptr)
+    , m_fillType(FillType::kEvenOdd)
 {
-    if ((points == nullptr) || (count <= 1)) {
-        return;
-    }
-    for (int i = 1; i < count; ++i) {
-        AddLine(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+    m_pPath = new Gdiplus::GraphicsPath();
+}
+
+Path_GDI::~Path_GDI()
+{
+    if (m_pPath != nullptr) {
+        delete m_pPath;
+        m_pPath = nullptr;
     }
 }
 
-void Path_GDI::AddBezier(int, int, int, int, int, int, int, int) {}
-void Path_GDI::AddBeziers(const UiPoint*, int) {}
-void Path_GDI::AddRect(const UiRect& rect) { m_bounds.Union(rect); }
-void Path_GDI::AddEllipse(const UiRect& rect) { m_bounds.Union(rect); }
-void Path_GDI::AddArc(const UiRect& rect, float, float) { m_bounds.Union(rect); }
+void Path_GDI::SetFillType(FillType mode)
+{
+    m_fillType = mode;
+    if (m_pPath != nullptr) {
+        Gdiplus::FillMode gdipMode;
+        switch (mode) {
+        case FillType::kEvenOdd:
+        case FillType::kInverseEvenOdd:
+            gdipMode = Gdiplus::FillModeAlternate;
+            break;
+        case FillType::kWinding:
+        case FillType::kInverseWinding:
+            gdipMode = Gdiplus::FillModeWinding;
+            break;
+        default:
+            gdipMode = Gdiplus::FillModeAlternate;
+            break;
+        }
+        m_pPath->SetFillMode(gdipMode);
+    }
+}
+
+IPath::FillType Path_GDI::GetFillType()
+{
+    return m_fillType;
+}
+
+void Path_GDI::AddLine(int x1, int y1, int x2, int y2)
+{
+    if (m_pPath != nullptr) {
+        m_pPath->AddLine(x1, y1, x2, y2);
+    }
+}
+
+void Path_GDI::AddLines(const UiPoint* points, int count)
+{
+    if (m_pPath == nullptr || points == nullptr || count < 2) {
+        return;
+    }
+
+    std::vector<Gdiplus::Point> gdipPoints;
+    gdipPoints.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        gdipPoints.push_back(Gdiplus::Point(points[i].x, points[i].y));
+    }
+
+    m_pPath->AddLines(gdipPoints.data(), count);
+}
+
+void Path_GDI::AddBezier(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4)
+{
+    if (m_pPath != nullptr) {
+        m_pPath->AddBezier(x1, y1, x2, y2, x3, y3, x4, y4);
+    }
+}
+
+void Path_GDI::AddBeziers(const UiPoint* points, int count)
+{
+    if (m_pPath == nullptr || points == nullptr || count < 4) {
+        return;
+    }
+
+    std::vector<Gdiplus::Point> gdipPoints;
+    gdipPoints.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        gdipPoints.push_back(Gdiplus::Point(points[i].x, points[i].y));
+    }
+
+    m_pPath->AddBeziers(gdipPoints.data(), count);
+}
+
+void Path_GDI::AddRect(const UiRect& rect)
+{
+    if (m_pPath != nullptr) {
+        Gdiplus::Rect gdipRect(rect.left, rect.top, rect.Width(), rect.Height());
+        m_pPath->AddRectangle(gdipRect);
+    }
+}
+
+void Path_GDI::AddEllipse(const UiRect& rect)
+{
+    if (m_pPath != nullptr) {
+        Gdiplus::Rect gdipRect(rect.left, rect.top, rect.Width(), rect.Height());
+        m_pPath->AddEllipse(gdipRect);
+    }
+}
+
+void Path_GDI::AddArc(const UiRect& rect, float startAngle, float sweepAngle)
+{
+    if (m_pPath != nullptr) {
+        Gdiplus::Rect gdipRect(rect.left, rect.top, rect.Width(), rect.Height());
+        m_pPath->AddArc(gdipRect, startAngle, sweepAngle);
+    }
+}
 
 void Path_GDI::AddPolygon(const UiPoint* points, int count)
 {
-    if ((points == nullptr) || (count <= 0)) {
+    if (m_pPath == nullptr || points == nullptr || count < 3) {
         return;
     }
-    UiRect rect(points[0].x, points[0].y, points[0].x, points[0].y);
-    for (int i = 1; i < count; ++i) {
-        rect.left = std::min(rect.left, points[i].x);
-        rect.top = std::min(rect.top, points[i].y);
-        rect.right = std::max(rect.right, points[i].x);
-        rect.bottom = std::max(rect.bottom, points[i].y);
+
+    std::vector<Gdiplus::Point> gdipPoints;
+    gdipPoints.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        gdipPoints.push_back(Gdiplus::Point(points[i].x, points[i].y));
     }
-    m_bounds.Union(rect);
+
+    m_pPath->AddPolygon(gdipPoints.data(), count);
 }
 
 void Path_GDI::AddPolygon(const UiPointF* points, int count)
 {
-    if ((points == nullptr) || (count <= 0)) {
+    if (m_pPath == nullptr || points == nullptr || count < 3) {
         return;
     }
-    UiRect rect(static_cast<int>(points[0].x), static_cast<int>(points[0].y), static_cast<int>(points[0].x), static_cast<int>(points[0].y));
-    for (int i = 1; i < count; ++i) {
-        rect.left = std::min(rect.left, static_cast<int>(points[i].x));
-        rect.top = std::min(rect.top, static_cast<int>(points[i].y));
-        rect.right = std::max(rect.right, static_cast<int>(points[i].x));
-        rect.bottom = std::max(rect.bottom, static_cast<int>(points[i].y));
+
+    std::vector<Gdiplus::PointF> gdipPoints;
+    gdipPoints.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        gdipPoints.push_back(Gdiplus::PointF(points[i].x, points[i].y));
     }
-    m_bounds.Union(rect);
+
+    m_pPath->AddPolygon(gdipPoints.data(), count);
 }
 
-void Path_GDI::Transform(IMatrix* pMatrix) { UNUSED_VARIABLE(pMatrix); }
-UiRect Path_GDI::GetBounds(const IPen* pen) { UNUSED_VARIABLE(pen); return m_bounds; }
-void Path_GDI::Close() {}
-void Path_GDI::Reset() { m_bounds.Clear(); }
+void Path_GDI::Transform(IMatrix* pMatrix)
+{
+    if (m_pPath == nullptr || pMatrix == nullptr) {
+        return;
+    }
+
+    Matrix_GDI* pGdiMatrix = dynamic_cast<Matrix_GDI*>(pMatrix);
+    if (pGdiMatrix != nullptr && pGdiMatrix->GetMatrix() != nullptr) {
+        m_pPath->Transform(pGdiMatrix->GetMatrix());
+    }
+}
+
+UiRect Path_GDI::GetBounds(const IPen* pen)
+{
+    if (m_pPath == nullptr) {
+        return UiRect();
+    }
+
+    Gdiplus::RectF bounds;
+    if (pen != nullptr) {
+        const Pen_GDI* pGdiPen = dynamic_cast<const Pen_GDI*>(pen);
+        if (pGdiPen != nullptr && pGdiPen->GetPen() != nullptr) {
+            m_pPath->GetBounds(&bounds, nullptr, pGdiPen->GetPen());
+        }
+        else {
+            m_pPath->GetBounds(&bounds);
+        }
+    }
+    else {
+        m_pPath->GetBounds(&bounds);
+    }
+
+    return UiRect(
+        static_cast<int>(bounds.X),
+        static_cast<int>(bounds.Y),
+        static_cast<int>(bounds.GetRight()),
+        static_cast<int>(bounds.GetBottom())
+    );
+}
+
+void Path_GDI::Close()
+{
+    if (m_pPath != nullptr) {
+        m_pPath->CloseFigure();
+    }
+}
+
+void Path_GDI::Reset()
+{
+    if (m_pPath != nullptr) {
+        m_pPath->Reset();
+    }
+}
 
 IPath* Path_GDI::Clone()
 {
-    auto* pPath = new Path_GDI();
-    pPath->m_fillType = m_fillType;
-    pPath->m_bounds = m_bounds;
-    return pPath;
+    Path_GDI* pNewPath = new Path_GDI();
+    if (pNewPath != nullptr && m_pPath != nullptr) {
+        delete pNewPath->m_pPath;
+        pNewPath->m_pPath = m_pPath->Clone();
+        pNewPath->m_fillType = m_fillType;
+    }
+    return pNewPath;
 }
 
 } // namespace ui
+
+#endif // DUILIB_BUILD_FOR_WIN
