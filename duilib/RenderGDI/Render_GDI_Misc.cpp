@@ -5,6 +5,8 @@
 #include "Bitmap_GDI.h"
 #include "duilib/Render/BitmapAlpha.h"
 
+#include <vector>
+
 namespace ui {
 
 void Render_GDI::DrawBoxShadow(const UiRect& rc,
@@ -126,6 +128,160 @@ void Render_GDI::Clear(const UiColor& uiColor)
 void Render_GDI::ClearRect(const UiRect& rcDirty, const UiColor& uiColor)
 {
     FillRect(rcDirty, uiColor, 255);
+}
+
+IBitmap* Render_GDI::MakeImageSnapshot()
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return nullptr;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+                                                 Gdiplus::ImageLockModeRead,
+                                                 PixelFormat32bppARGB,
+                                                 &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return nullptr;
+    }
+
+    const size_t rowBytes = static_cast<size_t>(m_nWidth) * sizeof(uint32_t);
+    std::vector<uint8_t> pixelData(static_cast<size_t>(m_nHeight) * rowBytes);
+
+    const uint8_t* pSrc = static_cast<const uint8_t*>(bitmapData.Scan0);
+    uint8_t* pDst = pixelData.data();
+    for (int32_t y = 0; y < m_nHeight; ++y) {
+        memcpy(pDst, pSrc, rowBytes);
+        pSrc += bitmapData.Stride;
+        pDst += rowBytes;
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+
+    Bitmap_GDI* pBitmap = new Bitmap_GDI();
+    if (!pBitmap->Init(static_cast<uint32_t>(m_nWidth), static_cast<uint32_t>(m_nHeight), pixelData.data())) {
+        delete pBitmap;
+        pBitmap = nullptr;
+    }
+    return pBitmap;
+}
+
+void Render_GDI::ClearAlpha(const UiRect& rcDirty, uint8_t alpha)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+                                                 Gdiplus::ImageLockModeWrite,
+                                                 PixelFormat32bppARGB,
+                                                 &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    if (bitmapData.Stride == (m_nWidth * static_cast<int32_t>(sizeof(uint32_t)))) {
+        BitmapAlpha bitmapAlpha(static_cast<uint8_t*>(bitmapData.Scan0), m_nWidth, m_nHeight, sizeof(uint32_t));
+        bitmapAlpha.ClearAlpha(rcDirty, alpha);
+    }
+    else {
+        const int32_t nTop = std::max(rcDirty.top, 0);
+        const int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+        const int32_t nLeft = std::max(rcDirty.left, 0);
+        const int32_t nRight = std::min(rcDirty.right, m_nWidth);
+        for (int32_t y = nTop; y < nBottom; ++y) {
+            uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+            for (int32_t x = nLeft; x < nRight; ++x) {
+                pRow[x * 4 + 3] = alpha;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+}
+
+void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPadding, uint8_t alpha)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+                                                 Gdiplus::ImageLockModeWrite,
+                                                 PixelFormat32bppARGB,
+                                                 &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    int32_t nTop = std::max(rcDirty.top, 0);
+    int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+    int32_t nLeft = std::max(rcDirty.left, 0);
+    int32_t nRight = std::min(rcDirty.right, m_nWidth);
+
+    nLeft = std::max(nLeft, rcShadowPadding.left);
+    nRight = std::min(nRight, m_nWidth - rcShadowPadding.right);
+    nTop = std::max(nTop, rcShadowPadding.top);
+    nBottom = std::min(nBottom, m_nHeight - rcShadowPadding.bottom);
+
+    for (int32_t y = nTop; y < nBottom; ++y) {
+        uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+        for (int32_t x = nLeft; x < nRight; ++x) {
+            uint8_t* pA = pRow + x * 4 + 3;
+            if ((alpha != 0) && (*pA == alpha)) {
+                *pA = 0;
+            }
+            else if (*pA == 0) {
+                *pA = 255;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+}
+
+void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPadding)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+                                                 Gdiplus::ImageLockModeWrite,
+                                                 PixelFormat32bppARGB,
+                                                 &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    int32_t nTop = std::max(rcDirty.top, 0);
+    int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+    int32_t nLeft = std::max(rcDirty.left, 0);
+    int32_t nRight = std::min(rcDirty.right, m_nWidth);
+
+    nLeft = std::max(nLeft, rcShadowPadding.left);
+    nRight = std::min(nRight, m_nWidth - rcShadowPadding.right);
+    nTop = std::max(nTop, rcShadowPadding.top);
+    nBottom = std::min(nBottom, m_nHeight - rcShadowPadding.bottom);
+
+    for (int32_t y = nTop; y < nBottom; ++y) {
+        uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+        for (int32_t x = nLeft; x < nRight; ++x) {
+            uint8_t* pA = pRow + x * 4 + 3;
+            if (*pA != 255) {
+                *pA = 255;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
 }
 
 std::unique_ptr<IRender> Render_GDI::Clone()
