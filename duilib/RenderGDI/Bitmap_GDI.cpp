@@ -60,19 +60,38 @@ bool Bitmap_GDI::Init(uint32_t nWidth, uint32_t nHeight,
         break;
     }
 
-    if (pPixelBits == nullptr) {
-        // 创建空位图
-        m_pBitmap = new Gdiplus::Bitmap(nWidth, nHeight, pixelFormat);
-    }
-    else {
-        // 从像素数据创建位图
-        int stride = nWidth * 4; // 每行字节数（ARGB 格式）
-        m_pBitmap = new Gdiplus::Bitmap(nWidth, nHeight, stride,
-                                       pixelFormat,
-                                       const_cast<BYTE*>(static_cast<const BYTE*>(pPixelBits)));
+    // 统一创建内部位图，避免绑定外部像素内存导致生命周期问题
+    m_pBitmap = new Gdiplus::Bitmap(nWidth, nHeight, pixelFormat);
+    if (m_pBitmap == nullptr || m_pBitmap->GetLastStatus() != Gdiplus::Ok) {
+        return false;
     }
 
-    return (m_pBitmap != nullptr && m_pBitmap->GetLastStatus() == Gdiplus::Ok);
+    if (pPixelBits != nullptr) {
+        Gdiplus::BitmapData bitmapData;
+        Gdiplus::Rect rect(0, 0, static_cast<INT>(nWidth), static_cast<INT>(nHeight));
+        Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+                                                     Gdiplus::ImageLockModeWrite,
+                                                     pixelFormat,
+                                                     &bitmapData);
+        if (status != Gdiplus::Ok) {
+            delete m_pBitmap;
+            m_pBitmap = nullptr;
+            return false;
+        }
+
+        const uint8_t* pSrc = static_cast<const uint8_t*>(pPixelBits);
+        uint8_t* pDst = static_cast<uint8_t*>(bitmapData.Scan0);
+        const size_t rowBytes = static_cast<size_t>(nWidth) * 4;
+        for (uint32_t y = 0; y < nHeight; ++y) {
+            memcpy(pDst, pSrc, rowBytes);
+            pSrc += rowBytes;
+            pDst += bitmapData.Stride;
+        }
+
+        m_pBitmap->UnlockBits(&bitmapData);
+    }
+
+    return true;
 }
 
 uint32_t Bitmap_GDI::GetWidth() const

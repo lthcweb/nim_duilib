@@ -114,20 +114,9 @@ bool Render_GDI::Resize(int32_t width, int32_t height)
 
 void* Render_GDI::GetPixelBits() const
 {
-    if (m_pBitmap == nullptr) {
-        return nullptr;
-    }
-
-    Gdiplus::BitmapData bitmapData;
-    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
-
-    if (m_pBitmap->LockBits(&rect, Gdiplus::ImageLockModeRead,
-                           PixelFormat32bppARGB, &bitmapData) == Gdiplus::Ok) {
-        void* pBits = bitmapData.Scan0;
-        m_pBitmap->UnlockBits(&bitmapData);
-        return pBits;
-    }
-
+    // GDI+ 的 Scan0 指针只在 LockBits 生命周期内有效，
+    // 不能像 Skia 那样长期返回底层像素地址。
+    // 调用方应使用 ReadPixels()/WritePixels() 完成数据读写。
     return nullptr;
 }
 
@@ -187,8 +176,10 @@ void Render_GDI::SetClip(const UiRect& rc, bool bIntersect)
                           rc.top + static_cast<int>(m_pPointOrg->Y),
                           rc.Width(), rc.Height());
 
-    m_pGraphics->Save();
-    
+    // 与 ClearClip()/RestoreClip() 配对
+    Gdiplus::GraphicsState state = m_pGraphics->Save();
+    m_stateStack.push_back(state);
+
     if (bIntersect) {
         m_pGraphics->SetClip(gdipRect, Gdiplus::CombineModeIntersect);
     }
@@ -209,21 +200,24 @@ void Render_GDI::SetRoundClip(const UiRect& rcItem, float rx, float ry, bool bIn
                        static_cast<Gdiplus::REAL>(rcItem.Width()),
                        static_cast<Gdiplus::REAL>(rcItem.Height()));
 
-    // 创建圆角矩形路径
-    Gdiplus::REAL diameter = rx * 2;
-    Gdiplus::RectF arc(rect.X, rect.Y, diameter, diameter);
+    // 创建圆角矩形路径（分别使用 rx/ry）
+    Gdiplus::REAL diameterX = rx * 2;
+    Gdiplus::REAL diameterY = ry * 2;
+    Gdiplus::RectF arc(rect.X, rect.Y, diameterX, diameterY);
     
     path.AddArc(arc, 180, 90);
-    arc.X = rect.GetRight() - diameter;
+    arc.X = rect.GetRight() - diameterX;
     path.AddArc(arc, 270, 90);
-    arc.Y = rect.GetBottom() - diameter;
+    arc.Y = rect.GetBottom() - diameterY;
     path.AddArc(arc, 0, 90);
     arc.X = rect.GetLeft();
     path.AddArc(arc, 90, 90);
     path.CloseFigure();
 
-    m_pGraphics->Save();
-    
+    // 与 ClearClip()/RestoreClip() 配对
+    Gdiplus::GraphicsState state = m_pGraphics->Save();
+    m_stateStack.push_back(state);
+
     if (bIntersect) {
         m_pGraphics->SetClip(&path, Gdiplus::CombineModeIntersect);
     }

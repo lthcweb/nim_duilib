@@ -178,8 +178,15 @@ bool Render_GDI::ReadPixels(const UiRect& rc, void* dstPixels, size_t dstPixelsL
         return false;
     }
 
-    // 复制数据
-    memcpy(dstPixels, bitmapData.Scan0, rc.Width() * rc.Height() * 4);
+    // 按行复制，避免 stride 与 width*4 不一致导致的数据错位
+    const uint8_t* pSrc = static_cast<const uint8_t*>(bitmapData.Scan0);
+    uint8_t* pDst = static_cast<uint8_t*>(dstPixels);
+    const size_t rowBytes = static_cast<size_t>(rc.Width()) * 4;
+    for (int32_t y = 0; y < rc.Height(); ++y) {
+        memcpy(pDst, pSrc, rowBytes);
+        pSrc += bitmapData.Stride;
+        pDst += rowBytes;
+    }
 
     m_pBitmap->UnlockBits(&bitmapData);
 
@@ -217,8 +224,15 @@ bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect&
         return false;
     }
 
-    // 复制数据
-    memcpy(bitmapData.Scan0, srcPixels, rc.Width() * rc.Height() * 4);
+    // 按行复制，避免 stride 与 width*4 不一致导致的数据错位
+    const uint8_t* pSrc = static_cast<const uint8_t*>(srcPixels);
+    uint8_t* pDst = static_cast<uint8_t*>(bitmapData.Scan0);
+    const size_t rowBytes = static_cast<size_t>(rc.Width()) * 4;
+    for (int32_t y = 0; y < rc.Height(); ++y) {
+        memcpy(pDst, pSrc, rowBytes);
+        pSrc += rowBytes;
+        pDst += bitmapData.Stride;
+    }
 
     m_pBitmap->UnlockBits(&bitmapData);
 
@@ -421,4 +435,3 @@ void Render_GDI::ReleaseRenderDC(HDC hdc)
 }
 
 } // namespace ui
-
