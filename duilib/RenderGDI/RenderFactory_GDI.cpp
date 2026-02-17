@@ -73,11 +73,21 @@ IRender* RenderFactory_GDI::CreateRender(const IRenderDpiPtr& spRenderDpi,
                                         void* platformData,
                                         RenderBackendType backendType)
 {
+    UNUSED_VARIABLE(backendType);
     Render_GDI* pRender = new Render_GDI();
     if (pRender != nullptr) {
         pRender->SetRenderDpi(spRenderDpi);
-        // platformData 在 Windows 平台是 HWND
-        // 在 Render_GDI 中可以根据需要使用
+#if defined(DUILIB_BUILD_FOR_WIN)
+        // platformData 在 Windows 平台是 HWND。
+        // Render_GDI::PaintAndSwapBuffers 依赖内部保存的 HWND 来获取窗口 DC；
+        // 如果这里不传入，m_hWnd 始终为空，会导致 DoPaint 后无法将缓存位图输出到窗口。
+        if (platformData != nullptr) {
+            pRender->GetRenderDC(static_cast<HWND>(platformData));
+            pRender->ReleaseRenderDC(nullptr);
+        }
+#else
+        UNUSED_VARIABLE(platformData);
+#endif
     }
     return pRender;
 }

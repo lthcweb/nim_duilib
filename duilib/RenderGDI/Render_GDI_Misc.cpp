@@ -5,14 +5,15 @@
 #include "Bitmap_GDI.h"
 #include "duilib/Render/BitmapAlpha.h"
 
-namespace ui {
+namespace ui
+{
 
 void Render_GDI::DrawBoxShadow(const UiRect& rc,
-                              const UiSize& roundSize,
-                              const UiPoint& cpOffset,
-                              int32_t nBlurRadius,
-                              int32_t nSpreadRadius,
-                              UiColor dwColor)
+    const UiSize& roundSize,
+    const UiPoint& cpOffset,
+    int32_t nBlurRadius,
+    int32_t nSpreadRadius,
+    UiColor dwColor)
 {
     ASSERT((GetWidth() > 0) && (GetHeight() > 0));
     ASSERT(dwColor.GetARGB() != 0);
@@ -40,9 +41,9 @@ void Render_GDI::DrawBoxShadow(const UiRect& rc,
     // 创建阴影路径
     Gdiplus::GraphicsPath shadowPath;
     Gdiplus::RectF rect(destRc.left + m_pPointOrg->X,
-                       destRc.top + m_pPointOrg->Y,
-                       static_cast<Gdiplus::REAL>(destRc.Width()),
-                       static_cast<Gdiplus::REAL>(destRc.Height()));
+        destRc.top + m_pPointOrg->Y,
+        static_cast<Gdiplus::REAL>(destRc.Width()),
+        static_cast<Gdiplus::REAL>(destRc.Height()));
 
     if (roundSize.cx > 0 && roundSize.cy > 0) {
         // 圆角矩形
@@ -65,9 +66,9 @@ void Render_GDI::DrawBoxShadow(const UiRect& rc,
     // 创建排除原始区域的路径
     Gdiplus::GraphicsPath excludePath;
     Gdiplus::RectF excludeRect(rc.left + m_pPointOrg->X,
-                              rc.top + m_pPointOrg->Y,
-                              static_cast<Gdiplus::REAL>(rc.Width()),
-                              static_cast<Gdiplus::REAL>(rc.Height()));
+        rc.top + m_pPointOrg->Y,
+        static_cast<Gdiplus::REAL>(rc.Width()),
+        static_cast<Gdiplus::REAL>(rc.Height()));
 
     if (roundSize.cx > 0 && roundSize.cy > 0) {
         float diameter = roundSize.cx * 2.0f;
@@ -113,6 +114,160 @@ void Render_GDI::DrawBoxShadow(const UiRect& rc,
 
     // 恢复状态
     m_pGraphics->Restore(state);
+}
+
+IBitmap* Render_GDI::MakeImageSnapshot()
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return nullptr;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+        Gdiplus::ImageLockModeRead,
+        PixelFormat32bppARGB,
+        &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return nullptr;
+    }
+
+    const size_t rowBytes = static_cast<size_t>(m_nWidth) * sizeof(uint32_t);
+    std::vector<uint8_t> pixelData(static_cast<size_t>(m_nHeight) * rowBytes);
+
+    const uint8_t* pSrc = static_cast<const uint8_t*>(bitmapData.Scan0);
+    uint8_t* pDst = pixelData.data();
+    for (int32_t y = 0; y < m_nHeight; ++y) {
+        memcpy(pDst, pSrc, rowBytes);
+        pSrc += bitmapData.Stride;
+        pDst += rowBytes;
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+
+    Bitmap_GDI* pBitmap = new Bitmap_GDI();
+    if (!pBitmap->Init(static_cast<uint32_t>(m_nWidth), static_cast<uint32_t>(m_nHeight), pixelData.data())) {
+        delete pBitmap;
+        pBitmap = nullptr;
+    }
+    return pBitmap;
+}
+
+void Render_GDI::ClearAlpha(const UiRect& rcDirty, uint8_t alpha)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+        Gdiplus::ImageLockModeWrite,
+        PixelFormat32bppARGB,
+        &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    if (bitmapData.Stride == (m_nWidth * static_cast<int32_t>(sizeof(uint32_t)))) {
+        BitmapAlpha bitmapAlpha(static_cast<uint8_t*>(bitmapData.Scan0), m_nWidth, m_nHeight, sizeof(uint32_t));
+        bitmapAlpha.ClearAlpha(rcDirty, alpha);
+    }
+    else {
+        const int32_t nTop = std::max(rcDirty.top, 0);
+        const int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+        const int32_t nLeft = std::max(rcDirty.left, 0);
+        const int32_t nRight = std::min(rcDirty.right, m_nWidth);
+        for (int32_t y = nTop; y < nBottom; ++y) {
+            uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+            for (int32_t x = nLeft; x < nRight; ++x) {
+                pRow[x * 4 + 3] = alpha;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+}
+
+void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPadding, uint8_t alpha)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+        Gdiplus::ImageLockModeWrite,
+        PixelFormat32bppARGB,
+        &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    int32_t nTop = std::max(rcDirty.top, 0);
+    int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+    int32_t nLeft = std::max(rcDirty.left, 0);
+    int32_t nRight = std::min(rcDirty.right, m_nWidth);
+
+    nLeft = std::max(nLeft, rcShadowPadding.left);
+    nRight = std::min(nRight, m_nWidth - rcShadowPadding.right);
+    nTop = std::max(nTop, rcShadowPadding.top);
+    nBottom = std::min(nBottom, m_nHeight - rcShadowPadding.bottom);
+
+    for (int32_t y = nTop; y < nBottom; ++y) {
+        uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+        for (int32_t x = nLeft; x < nRight; ++x) {
+            uint8_t* pA = pRow + x * 4 + 3;
+            if ((alpha != 0) && (*pA == alpha)) {
+                *pA = 0;
+            }
+            else if (*pA == 0) {
+                *pA = 255;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
+}
+
+void Render_GDI::RestoreAlpha(const UiRect& rcDirty, const UiPadding& rcShadowPadding)
+{
+    if ((m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
+        return;
+    }
+
+    Gdiplus::BitmapData bitmapData;
+    Gdiplus::Rect rect(0, 0, m_nWidth, m_nHeight);
+    Gdiplus::Status status = m_pBitmap->LockBits(&rect,
+        Gdiplus::ImageLockModeWrite,
+        PixelFormat32bppARGB,
+        &bitmapData);
+    if (status != Gdiplus::Ok) {
+        return;
+    }
+
+    int32_t nTop = std::max(rcDirty.top, 0);
+    int32_t nBottom = std::min(rcDirty.bottom, m_nHeight);
+    int32_t nLeft = std::max(rcDirty.left, 0);
+    int32_t nRight = std::min(rcDirty.right, m_nWidth);
+
+    nLeft = std::max(nLeft, rcShadowPadding.left);
+    nRight = std::min(nRight, m_nWidth - rcShadowPadding.right);
+    nTop = std::max(nTop, rcShadowPadding.top);
+    nBottom = std::min(nBottom, m_nHeight - rcShadowPadding.bottom);
+
+    for (int32_t y = nTop; y < nBottom; ++y) {
+        uint8_t* pRow = static_cast<uint8_t*>(bitmapData.Scan0) + y * bitmapData.Stride;
+        for (int32_t x = nLeft; x < nRight; ++x) {
+            uint8_t* pA = pRow + x * 4 + 3;
+            if (*pA != 255) {
+                *pA = 255;
+            }
+        }
+    }
+
+    m_pBitmap->UnlockBits(&bitmapData);
 }
 
 void Render_GDI::Clear(const UiColor& uiColor)
@@ -165,14 +320,14 @@ bool Render_GDI::ReadPixels(const UiRect& rc, void* dstPixels, size_t dstPixelsL
     }
 
     Gdiplus::Rect gdipRect(rc.left + static_cast<int>(m_pPointOrg->X),
-                          rc.top + static_cast<int>(m_pPointOrg->Y),
-                          rc.Width(), rc.Height());
+        rc.top + static_cast<int>(m_pPointOrg->Y),
+        rc.Width(), rc.Height());
 
     Gdiplus::BitmapData bitmapData;
     Gdiplus::Status status = m_pBitmap->LockBits(&gdipRect,
-                                                 Gdiplus::ImageLockModeRead,
-                                                 PixelFormat32bppARGB,
-                                                 &bitmapData);
+        Gdiplus::ImageLockModeRead,
+        PixelFormat32bppARGB,
+        &bitmapData);
 
     if (status != Gdiplus::Ok) {
         return false;
@@ -204,14 +359,14 @@ bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect&
     }
 
     Gdiplus::Rect gdipRect(rc.left + static_cast<int>(m_pPointOrg->X),
-                          rc.top + static_cast<int>(m_pPointOrg->Y),
-                          rc.Width(), rc.Height());
+        rc.top + static_cast<int>(m_pPointOrg->Y),
+        rc.Width(), rc.Height());
 
     Gdiplus::BitmapData bitmapData;
     Gdiplus::Status status = m_pBitmap->LockBits(&gdipRect,
-                                                 Gdiplus::ImageLockModeWrite,
-                                                 PixelFormat32bppARGB,
-                                                 &bitmapData);
+        Gdiplus::ImageLockModeWrite,
+        PixelFormat32bppARGB,
+        &bitmapData);
 
     if (status != Gdiplus::Ok) {
         return false;
@@ -245,14 +400,14 @@ bool Render_GDI::WritePixels(void* srcPixels, size_t srcPixelsLen, const UiRect&
 
     // 锁定目标区域
     Gdiplus::Rect gdipRect(updateRect.left + static_cast<int>(m_pPointOrg->X),
-                          updateRect.top + static_cast<int>(m_pPointOrg->Y),
-                          updateRect.Width(), updateRect.Height());
+        updateRect.top + static_cast<int>(m_pPointOrg->Y),
+        updateRect.Width(), updateRect.Height());
 
     Gdiplus::BitmapData bitmapData;
     Gdiplus::Status status = m_pBitmap->LockBits(&gdipRect,
-                                                 Gdiplus::ImageLockModeWrite,
-                                                 PixelFormat32bppARGB,
-                                                 &bitmapData);
+        Gdiplus::ImageLockModeWrite,
+        PixelFormat32bppARGB,
+        &bitmapData);
 
     if (status != Gdiplus::Ok) {
         return false;
@@ -299,9 +454,9 @@ RenderClipType Render_GDI::GetClipInfo(std::vector<UiRect>& clipRects)
     region.GetBounds(&bounds, m_pGraphics);
 
     UiRect rc(static_cast<int>(bounds.X - m_pPointOrg->X),
-             static_cast<int>(bounds.Y - m_pPointOrg->Y),
-             static_cast<int>(bounds.GetRight() - m_pPointOrg->X),
-             static_cast<int>(bounds.GetBottom() - m_pPointOrg->Y));
+        static_cast<int>(bounds.Y - m_pPointOrg->Y),
+        static_cast<int>(bounds.GetRight() - m_pPointOrg->X),
+        static_cast<int>(bounds.GetBottom() - m_pPointOrg->Y));
 
     clipRects.push_back(rc);
 
@@ -374,7 +529,7 @@ bool Render_GDI::SetWindowRoundRectRgn(const UiRect& rcWnd, float rx, float ry, 
     }
 
     HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom,
-                                     static_cast<int>(rx * 2), static_cast<int>(ry * 2));
+        static_cast<int>(rx * 2), static_cast<int>(ry * 2));
     if (hRgn != nullptr) {
         ::SetWindowRgn(m_hWnd, hRgn, bRedraw ? TRUE : FALSE);
         return true;
