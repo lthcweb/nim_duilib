@@ -389,6 +389,8 @@ void RichEditHost::TxInvalidateRect(LPCRECT prc, BOOL /*fMode*/)
     UiRect rc = (prc == nullptr) ? rcClient : MakeUiRect(*prc);
     if (prc != nullptr) {
         rc.Offset(rcClient.left, rcClient.top);
+        // 为了覆盖GDI文字抗锯齿可能产生的边缘外扩，适当放大脏区，避免边缘残影（尤其底边）
+        rc.Inflate(1, 1);
     }
     rc.Offset(-scrollOffset.x, -scrollOffset.y);
 
