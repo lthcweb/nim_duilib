@@ -381,10 +381,14 @@ void RichEditHost::TxInvalidateRect(LPCRECT prc, BOOL /*fMode*/)
 
     UiPoint scrollOffset = m_pRichEdit->GetScrollOffsetInScrollBox();
 
-    // TextServices给出的prc是相对于富文本客户区(0,0)的坐标，需要映射到窗口坐标
-    UiRect rc = (prc == nullptr) ? m_rcClient : MakeUiRect(*prc);
+    // TextServices给出的prc是相对于TxGetClientRect返回矩形左上角(0,0)的坐标
+    // 这里必须与TxGetClientRect保持一致，使用GetControlRect而不是m_rcClient，
+    // 否则在text_padding(尤其上下边距)或垂直对齐参与时会出现脏区偏移
+    UiRect rcClient = m_rcClient;
+    GetControlRect(&rcClient);
+    UiRect rc = (prc == nullptr) ? rcClient : MakeUiRect(*prc);
     if (prc != nullptr) {
-        rc.Offset(m_rcClient.left, m_rcClient.top);
+        rc.Offset(rcClient.left, rcClient.top);
     }
     rc.Offset(-scrollOffset.x, -scrollOffset.y);
 
