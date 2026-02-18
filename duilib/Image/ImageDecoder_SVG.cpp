@@ -31,6 +31,99 @@
 namespace ui
 {
 
+namespace
+{
+class SvgDeleter
+{
+public:
+    void operator()(NSVGimage* pSvgImage) const
+    {
+        if (pSvgImage != nullptr) {
+            nsvgDelete(pSvgImage);
+        }
+    }
+};
+
+class RasterizerDeleter
+{
+public:
+    void operator()(NSVGrasterizer* pRasterizer) const
+    {
+        if (pRasterizer != nullptr) {
+            nsvgDeleteRasterizer(pRasterizer);
+        }
+    }
+};
+
+class SvgImageImpl : public ISvgImage
+{
+public:
+    virtual ~SvgImageImpl() override = default;
+
+    virtual uint32_t GetWidth() const override { return m_nImageWidth; }
+    virtual uint32_t GetHeight() const override { return m_nImageHeight; }
+    virtual float GetImageSizeScale() const override { return m_fImageSizeScale; }
+
+    virtual std::shared_ptr<IBitmap> GetBitmap(const UiSize& szImageSize) override
+    {
+        const uint32_t nImageWidth = (szImageSize.cx > 0) ? static_cast<uint32_t>(szImageSize.cx) : m_nImageWidth;
+        const uint32_t nImageHeight = (szImageSize.cy > 0) ? static_cast<uint32_t>(szImageSize.cy) : m_nImageHeight;
+        if ((nImageWidth == 0) || (nImageHeight == 0) || (m_svgData == nullptr) || (m_rasterizer == nullptr)) {
+            return nullptr;
+        }
+
+        if ((m_pBitmap != nullptr) &&
+            (m_pBitmap->GetWidth() == nImageWidth) &&
+            (m_pBitmap->GetHeight() == nImageHeight)) {
+            return m_pBitmap;
+        }
+
+        const float sourceWidth = (m_svgData->width > 0.0f) ? m_svgData->width : static_cast<float>(m_nImageWidth);
+        const float sourceHeight = (m_svgData->height > 0.0f) ? m_svgData->height : static_cast<float>(m_nImageHeight);
+        if ((sourceWidth <= 0.0f) || (sourceHeight <= 0.0f)) {
+            return nullptr;
+        }
+
+        const float scaleX = static_cast<float>(nImageWidth) / sourceWidth;
+        const float scaleY = static_cast<float>(nImageHeight) / sourceHeight;
+        const float scale = (scaleX < scaleY) ? scaleX : scaleY;
+        if (scale <= 0.0f) {
+            return nullptr;
+        }
+
+        std::vector<uint8_t> bitmapData(static_cast<size_t>(nImageWidth) * static_cast<size_t>(nImageHeight) * 4, 0);
+        nsvgRasterize(m_rasterizer.get(), m_svgData.get(), 0.0f, 0.0f, scale,
+            bitmapData.data(), static_cast<int>(nImageWidth), static_cast<int>(nImageHeight), static_cast<int>(nImageWidth * 4));
+
+        IRenderFactory* pRenderFactory = GlobalManager::Instance().GetRenderFactory();
+        if (pRenderFactory == nullptr) {
+            return nullptr;
+        }
+        std::shared_ptr<IBitmap> pBitmap(pRenderFactory->CreateBitmap());
+        if (pBitmap == nullptr) {
+            return nullptr;
+        }
+        if (!pBitmap->Init(nImageWidth, nImageHeight, bitmapData.data(), 1.0f, BitmapAlphaType::kUnpremul_SkAlphaType)) {
+            return nullptr;
+        }
+
+        m_pBitmap = pBitmap;
+        return pBitmap;
+    }
+
+public:
+    uint32_t m_nImageWidth = 0;
+    uint32_t m_nImageHeight = 0;
+    float m_fImageSizeScale = IMAGE_SIZE_SCALE_NONE;
+    std::unique_ptr<NSVGimage, SvgDeleter> m_svgData;
+    std::unique_ptr<NSVGrasterizer, RasterizerDeleter> m_rasterizer;
+
+private:
+    std::shared_ptr<IBitmap> m_pBitmap;
+};
+}
+
+
 ImageDecoder_SVG::ImageDecoder_SVG() = default;
 ImageDecoder_SVG::~ImageDecoder_SVG() = default;
 
@@ -61,9 +154,72 @@ bool ImageDecoder_SVG::CanDecode(const uint8_t* data, size_t dataLen) const
 
 std::unique_ptr<IImage> ImageDecoder_SVG::LoadImageData(const ImageDecodeParam& decodeParam)
 {
-    UNUSED_VARIABLE(decodeParam);
-    // GDI路径预留：SVG矢量解码暂未实现
-    return nullptr;
+    std::vector<uint8_t> fileData;
+    if ((decodeParam.m_pFileData != nullptr) && !decodeParam.m_pFileData->empty()) {
+        fileData = *decodeParam.m_pFileData;
+    }
+    else if (!decodeParam.m_imageFilePath.IsEmpty()) {
+        FileUtil::ReadFileData(decodeParam.m_imageFilePath, fileData);
+        if (decodeParam.m_bAssertEnabled) {
+            ASSERT(!fileData.empty());
+        }
+        if (fileData.empty()) {
+            return nullptr;
+        }
+    }
+    else {
+        ASSERT(0);
+        return nullptr;
+    }
+
+    bool hasAppendedNullTerminator = false;
+    if (fileData.empty() || (fileData.back() != '\0')) {
+        fileData.push_back('\0');
+        hasAppendedNullTerminator = true;
+    }
+
+    char* pData = reinterpret_cast<char*>(fileData.data());
+    std::unique_ptr<NSVGimage, SvgDeleter> svgData(nsvgParse(pData, "px", 96.0f));
+    if (hasAppendedNullTerminator) {
+        fileData.pop_back();
+    }
+    if (decodeParam.m_bAssertEnabled) {
+        ASSERT(svgData != nullptr);
+    }
+    if (svgData == nullptr) {
+        return nullptr;
+    }
+
+    int32_t nSvgImageWidth = static_cast<int32_t>(std::ceil(svgData->width));
+    int32_t nSvgImageHeight = static_cast<int32_t>(std::ceil(svgData->height));
+    if ((nSvgImageWidth < 1) || (nSvgImageHeight < 1)) {
+        return nullptr;
+    }
+
+    float fImageSizeScale = decodeParam.m_fImageSizeScale;
+    uint32_t nImageWidth = ImageUtil::GetScaledImageSize(static_cast<uint32_t>(nSvgImageWidth), fImageSizeScale);
+    uint32_t nImageHeight = ImageUtil::GetScaledImageSize(static_cast<uint32_t>(nSvgImageHeight), fImageSizeScale);
+    if ((nImageWidth < 1) || (nImageHeight < 1)) {
+        return nullptr;
+    }
+
+    std::unique_ptr<NSVGrasterizer, RasterizerDeleter> rasterizer(nsvgCreateRasterizer());
+    if (decodeParam.m_bAssertEnabled) {
+        ASSERT(rasterizer != nullptr);
+    }
+    if (rasterizer == nullptr) {
+        return nullptr;
+    }
+
+    SvgImageImpl* pSvgImageImpl = new SvgImageImpl;
+    std::shared_ptr<ISvgImage> pSvgImage(pSvgImageImpl);
+    pSvgImageImpl->m_nImageWidth = nImageWidth;
+    pSvgImageImpl->m_nImageHeight = nImageHeight;
+    pSvgImageImpl->m_fImageSizeScale = fImageSizeScale;
+    pSvgImageImpl->m_svgData = std::move(svgData);
+    pSvgImageImpl->m_rasterizer = std::move(rasterizer);
+
+    return Image_Svg::MakeImage(pSvgImage);
 }
 
 } // namespace ui
