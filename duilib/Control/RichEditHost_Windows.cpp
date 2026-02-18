@@ -389,8 +389,15 @@ void RichEditHost::TxInvalidateRect(LPCRECT prc, BOOL /*fMode*/)
     UiRect rc = (prc == nullptr) ? rcClient : MakeUiRect(*prc);
     if (prc != nullptr) {
         rc.Offset(rcClient.left, rcClient.top);
-        // 为了覆盖GDI文字抗锯齿可能产生的边缘外扩，适当放大脏区，避免边缘残影（尤其底边）
-        rc.Inflate(1, 1);
+
+        // 为了覆盖GDI文字抗锯齿可能产生的边缘外扩，适当放大脏区。
+        // 当存在底部text_padding时，底边更容易出现欠重绘，需额外向下扩展。
+        const UiPadding textPadding = m_pRichEdit->GetTextPadding();
+        const int32_t extraBottom = std::max(1, textPadding.bottom + 1);
+        rc.left -= 1;
+        rc.top -= 1;
+        rc.right += 1;
+        rc.bottom += extraBottom;
     }
     rc.Offset(-scrollOffset.x, -scrollOffset.y);
 
