@@ -380,14 +380,21 @@ void RichEditHost::TxInvalidateRect(LPCRECT prc, BOOL /*fMode*/)
     }
 
     UiPoint scrollOffset = m_pRichEdit->GetScrollOffsetInScrollBox();
+
+    // TextServices给出的prc是相对于富文本客户区(0,0)的坐标，需要映射到窗口坐标
     UiRect rc = (prc == nullptr) ? m_rcClient : MakeUiRect(*prc);
+    if (prc != nullptr) {
+        rc.Offset(m_rcClient.left, m_rcClient.top);
+    }
     rc.Offset(-scrollOffset.x, -scrollOffset.y);
 
-    //标记窗口指定区域为脏区域，进行重绘(取控件位置部分，避免引发其他控件的重绘)
+    // 标记窗口指定区域为脏区域，进行重绘(取控件位置部分，避免引发其他控件的重绘)
     UiRect rcRichEdit = m_pRichEdit->GetRect();
     rcRichEdit.Offset(-scrollOffset.x, -scrollOffset.y);
     rc.Intersect(rcRichEdit);
-    pWindow->Invalidate(rc);
+    if (!rc.IsEmpty()) {
+        pWindow->Invalidate(rc);
+    }
 }
 
 void RichEditHost::TxViewChange(BOOL /*fUpdate*/)
