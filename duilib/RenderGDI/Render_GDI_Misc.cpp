@@ -4,6 +4,7 @@
 #include "Render_GDI.h"
 #include "Bitmap_GDI.h"
 #include "duilib/Render/BitmapAlpha.h"
+#include "duilib/Utils/PerformanceUtil.h"
 
 namespace ui
 {
@@ -493,33 +494,115 @@ void Render_GDI::SetRenderDpi(const IRenderDpiPtr& spRenderDpi)
 
 bool Render_GDI::PaintAndSwapBuffers(IRenderPaint* pRenderPaint)
 {
-    if (pRenderPaint == nullptr || m_hWnd == nullptr) {
+    if ((pRenderPaint == nullptr) || (m_hWnd == nullptr) || !::IsWindow(m_hWnd) ||
+        (m_pBitmap == nullptr) || (m_nWidth <= 0) || (m_nHeight <= 0)) {
         return false;
     }
 
     // 获取更新区域
-    UiRect rcUpdate;
-    bool bPartialPaint = pRenderPaint->GetUpdateRect(rcUpdate);
-
-    // 执行绘制
-    UiRect rcPaint = bPartialPaint ? rcUpdate : UiRect(0, 0, m_nWidth, m_nHeight);
-    if (!pRenderPaint->DoPaint(rcPaint)) {
+    RECT rectUpdate = { 0, };
+    if (!::GetUpdateRect(m_hWnd, &rectUpdate, FALSE)) {
+        // 无需绘制
         return false;
     }
 
-    // 获取窗口 DC
-    HDC hDC = ::GetDC(m_hWnd);
-    if (hDC == nullptr) {
-        return false;
+    uint8_t nLayeredWindowAlpha = pRenderPaint->GetLayeredWindowAlpha();
+
+    auto doSwap = [&](HDC hPaintDC, const UiRect& rcPaint) -> bool {
+        if ((hPaintDC == nullptr) || rcPaint.IsEmpty()) {
+            return false;
+        }
+
+        bool bPainted = false;
+        if (::GetWindowLong(m_hWnd, GWL_EXSTYLE) & WS_EX_LAYERED) {
+            // 分层窗口，优先使用 UpdateLayeredWindow 保持与 Skia 的交换路径一致
+            COLORREF crKey = 0;
+            BYTE bAlpha = 255;
+            DWORD dwFlags = 0;
+            bool bLayeredWindowAttributes = ::GetLayeredWindowAttributes(m_hWnd, &crKey, &bAlpha, &dwFlags) != FALSE;
+            if (bLayeredWindowAttributes) {
+                if ((bAlpha == 255) || (crKey == 0)) {
+                    bLayeredWindowAttributes = false;
+                }
+            }
+            if (!bLayeredWindowAttributes) {
+                HBITMAP hBitmap = nullptr;
+                if (m_pBitmap->GetHBITMAP(Gdiplus::Color(0, 0, 0, 0), &hBitmap) == Gdiplus::Ok) {
+                    HDC hMemDC = ::CreateCompatibleDC(nullptr);
+                    if ((hMemDC != nullptr) && (hBitmap != nullptr)) {
+                        HGDIOBJ hOldObj = ::SelectObject(hMemDC, hBitmap);
+
+                        RECT rcWindow = { 0, 0, 0, 0 };
+                        RECT rcClient = { 0, 0, 0, 0 };
+                        ::GetWindowRect(m_hWnd, &rcWindow);
+                        ::GetClientRect(m_hWnd, &rcClient);
+
+                        POINT pt = { rcWindow.left, rcWindow.top };
+                        SIZE szWindow = { rcClient.right - rcClient.left, rcClient.bottom - rcClient.top };
+                        POINT ptSrc = { 0, 0 };
+                        BLENDFUNCTION bf = { AC_SRC_OVER, 0, nLayeredWindowAlpha, AC_SRC_ALPHA };
+                        bPainted = ::UpdateLayeredWindow(m_hWnd, nullptr, &pt, &szWindow, hMemDC, &ptSrc, 0, &bf, ULW_ALPHA) != FALSE;
+
+                        ::SelectObject(hMemDC, hOldObj);
+                    }
+                    if (hMemDC != nullptr) {
+                        ::DeleteDC(hMemDC);
+                    }
+                    if (hBitmap != nullptr) {
+                        ::DeleteObject(hBitmap);
+                    }
+                }
+            }
+        }
+
+        if (!bPainted) {
+            Gdiplus::Graphics graphics(hPaintDC);
+            graphics.SetCompositingMode(Gdiplus::CompositingModeSourceCopy);
+            graphics.DrawImage(m_pBitmap,
+                               static_cast<Gdiplus::REAL>(rcPaint.left),
+                               static_cast<Gdiplus::REAL>(rcPaint.top),
+                               static_cast<Gdiplus::REAL>(rcPaint.left),
+                               static_cast<Gdiplus::REAL>(rcPaint.top),
+                               static_cast<Gdiplus::REAL>(rcPaint.Width()),
+                               static_cast<Gdiplus::REAL>(rcPaint.Height()),
+                               Gdiplus::UnitPixel);
+            bPainted = true;
+        }
+        return bPainted;
+    };
+
+    PerformanceStat statPerformance(_T("Render_GDI::PaintAndSwapBuffers"));
+    bool bRet = false;
+
+    PAINTSTRUCT ps = { 0, };
+    HDC hPaintDC = ::BeginPaint(m_hWnd, &ps);
+    UiRect rcPaint(ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
+    if (!rcPaint.IsEmpty() && (hPaintDC != nullptr)) {
+        bRet = pRenderPaint->DoPaint(rcPaint);
+        if (bRet) {
+            bRet = doSwap(hPaintDC, rcPaint);
+        }
+        ::EndPaint(m_hWnd, &ps);
+        hPaintDC = nullptr;
+    }
+    else {
+        // BeginPaint 返回空区域时，退化为使用更新区绘制
+        ::EndPaint(m_hWnd, &ps);
+        UiRect rcUpdate(rectUpdate.left, rectUpdate.top, rectUpdate.right, rectUpdate.bottom);
+
+        bRet = pRenderPaint->DoPaint(rcUpdate);
+        if (bRet) {
+            hPaintDC = ::GetDC(m_hWnd);
+            bRet = doSwap(hPaintDC, rcUpdate);
+            if (hPaintDC != nullptr) {
+                ::ReleaseDC(m_hWnd, hPaintDC);
+            }
+        }
+
+        ::ValidateRect(m_hWnd, &rectUpdate);
     }
 
-    // 创建兼容 DC 和位图
-    Gdiplus::Graphics graphics(hDC);
-    graphics.DrawImage(m_pBitmap, 0, 0);
-
-    ::ReleaseDC(m_hWnd, hDC);
-
-    return true;
+    return bRet;
 }
 
 bool Render_GDI::SetWindowRoundRectRgn(const UiRect& rcWnd, float rx, float ry, bool bRedraw)
@@ -576,4 +659,3 @@ void Render_GDI::ReleaseRenderDC(HDC hdc)
 }
 
 } // namespace ui
-
