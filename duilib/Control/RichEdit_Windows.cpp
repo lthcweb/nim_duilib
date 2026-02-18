@@ -2297,9 +2297,6 @@ void RichEdit::Paint(IRender* pRender, const UiRect& rcPaint)
         return;
     }
 
-    UiRect rc;
-    m_pRichHost->GetControlRect(&rc);
-
     // 同步TextServices背景色：按常规Edit控件风格使用控件背景色
     if (!GetBkColor().empty()) {
         UiColor bkColor = GetUiColor(GetBkColor());
@@ -2322,9 +2319,20 @@ void RichEdit::Paint(IRender* pRender, const UiRect& rcPaint)
 
     ScrollBar* pVScrollBar = GetVScrollBar();
     if (m_bVScrollBarFixing && (pVScrollBar != nullptr)) {
-        LONG lWidth = rc.Width() + pVScrollBar->GetFixedWidth().GetInt32();
+        // 与SetPos中的滚动条修正逻辑保持一致：使用去掉控件padding后的可布局区域做判断，
+        // 避免text_padding(尤其bottom)导致高度基准不一致，从而触发重复Arrange。
+        UiRect rcLayout = GetRectWithoutPadding();
+        if (pVScrollBar->IsValid()) {
+            rcLayout.right -= pVScrollBar->GetFixedWidth().GetInt32();
+        }
+        ScrollBar* pHScrollBar = GetHScrollBar();
+        if ((pHScrollBar != nullptr) && pHScrollBar->IsValid()) {
+            rcLayout.bottom -= pHScrollBar->GetFixedHeight().GetInt32();
+        }
+
+        LONG lWidth = rcLayout.Width() + pVScrollBar->GetFixedWidth().GetInt32();
         UiSize szNaturalSize = GetNaturalSize(lWidth, 0);
-        if(szNaturalSize.cy <= rc.Height() ) {
+        if (szNaturalSize.cy <= rcLayout.Height()) {
             Arrange();
         }
     }
