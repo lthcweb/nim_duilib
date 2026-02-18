@@ -2315,32 +2315,7 @@ void RichEdit::Paint(IRender* pRender, const UiRect& rcPaint)
         m_richCtrl.SetBackgroundColor();
     }
 
-    if (bNeedPaint) {
-#if !defined (DUILIB_RICH_EDIT_DRAW_OPT) 
-        HDC hdc = pRender->GetRenderDC(GetWindow()->NativeWnd()->GetHWND());
-#else
-        HDC hdc = nullptr;
-#endif
-        if(hdc != nullptr){
-            RECT paintRect = { rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom };
-            pTextServices->TxDraw(DVASPECT_CONTENT,     // Draw Aspect
-                                  /*-1*/0,              // Lindex
-                                  nullptr,              // Info for drawing optimazation
-                                  nullptr,              // target device information
-                                  hdc,                  // Draw device HDC
-                                  nullptr,              // Target device HDC
-                                  (RECTL*)&rc,          // Bounding client rectangle
-                                  nullptr,              // Clipping rectangle for metafiles
-                                  &paintRect,           // Update rectangle
-                                  nullptr,              // Call back function
-                                  0,                    // Call back parameter
-                                  0);                   // What view of the object
-
-            pRender->ReleaseRenderDC(hdc);
-            //绘制完成后，做标记，避免重复绘制
-            bNeedPaint = false;
-        }
-    }
+    // 统一使用PaintRichEdit离屏路径，避免窗口DC直绘与渲染引擎合成路径不一致导致的残影/脏块
     if (bNeedPaint) {
         PaintRichEdit(pRender, rcPaint);
     }
@@ -2517,14 +2492,15 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
     //更新区域（相对于位图左上角坐标）
     rcUpdate.Offset(-rc.left, -rc.top);
 
-    // 作为常规Edit的稳定绘制路径：先用纯背景色清理更新区域，再由TxDraw绘制文本
-    // 避免透明背景链路下ReadPixels/Alpha修补造成的杂色、残影问题
+    // 作为常规Edit的稳定绘制路径：每帧全量清理离屏位图，再由TxDraw重绘
+    // 避免复用位图导致上帧像素残留（杂色/脏块/残影）
     const int32_t nTop = std::max(rcUpdate.top, 0);
     const int32_t nBottom = std::min(rcUpdate.bottom, rc.Height());
     const int32_t nLeft = std::max(rcUpdate.left, 0);
     const int32_t nRight = std::min(rcUpdate.right, rc.Width());
     const int32_t nWidth = rc.Width();
-    if ((nTop >= nBottom) || (nLeft >= nRight)) {
+    const int32_t nHeight = rc.Height();
+    if ((nTop >= nBottom) || (nLeft >= nRight) || (nWidth <= 0) || (nHeight <= 0)) {
         return;
     }
 
@@ -2543,9 +2519,9 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
     const uint8_t bgG = bkColor.GetG();
     const uint8_t bgR = bkColor.GetR();
 
-    for (int32_t i = nTop; i < nBottom; ++i) {
-        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits;
-        pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
+    for (int32_t i = 0; i < nHeight; ++i) {
+        pRowStart = (uint8_t*)pBitmapBits + i * nWidth * nColorBits;
+        pRowEnd = pRowStart + nWidth * nColorBits;
         while (pRowStart < pRowEnd) {
             pRowStart[0] = bgB;
             pRowStart[1] = bgG;
@@ -2617,10 +2593,10 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
                             0,                  // Call back parameter
                             0);                 // What view of the object
 
-    // 强制保证更新区alpha为不透明，避免GDI文本抗锯齿在alpha通道留下脏值
-    for (int32_t i = nTop; i < nBottom; ++i) {
-        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
-        pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
+    // 强制保证整个位图alpha为不透明，避免GDI文本抗锯齿在alpha通道留下脏值
+    for (int32_t i = 0; i < nHeight; ++i) {
+        pRowStart = (uint8_t*)pBitmapBits + i * nWidth * nColorBits + 3;
+        pRowEnd = pRowStart + nWidth * nColorBits;
         while (pRowStart < pRowEnd) {
             *pRowStart = 255;
             pRowStart += 4;
