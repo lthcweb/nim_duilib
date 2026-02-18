@@ -181,7 +181,8 @@ void RichEditHost::Init()
     ASSERT(m_pTextServices != nullptr);
     if (m_pTextServices != nullptr) {
         //设置默认属性
-        SetTransparent(TRUE);
+        // 使用不透明背景，更接近常规Edit控件，避免透明合成链路导致的背景杂色
+        SetTransparent(FALSE);
         LRESULT lResult = 0;
         m_pTextServices->TxSendMessage(EM_SETLANGOPTIONS, 0, 0, &lResult);
         m_pTextServices->TxSendMessage(EM_SETEVENTMASK, 0, ENM_CHANGE | ENM_SELCHANGE | ENM_LINK, &lResult);

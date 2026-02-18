@@ -2300,6 +2300,21 @@ void RichEdit::Paint(IRender* pRender, const UiRect& rcPaint)
     UiRect rc;
     m_pRichHost->GetControlRect(&rc);
 
+    // 同步TextServices背景色：按常规Edit控件风格使用控件背景色
+    if (!GetBkColor().empty()) {
+        UiColor bkColor = GetUiColor(GetBkColor());
+        if (!bkColor.IsEmpty()) {
+            COLORREF crBk = RGB(bkColor.GetR(), bkColor.GetG(), bkColor.GetB());
+            m_richCtrl.SetBackgroundColor(crBk);
+        }
+        else {
+            m_richCtrl.SetBackgroundColor();
+        }
+    }
+    else {
+        m_richCtrl.SetBackgroundColor();
+    }
+
     if (bNeedPaint) {
 #if !defined (DUILIB_RICH_EDIT_DRAW_OPT) 
         HDC hdc = pRender->GetRenderDC(GetWindow()->NativeWnd()->GetHWND());
