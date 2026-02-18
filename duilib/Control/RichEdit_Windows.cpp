@@ -2456,6 +2456,12 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
         return;
     }
 
+    // 多行模式下，TextServices返回的局部脏区在GDI路径上容易欠覆盖，
+    // 导致文本区域出现杂点/残影；这里强制整客户区重绘保证一致性。
+    if (IsMultiLine()) {
+        rcUpdate = rc;
+    }
+
     if (!clipRects.empty()) {
         bool bHasIntersect = false;
         for (const UiRect& clipRect : clipRects) {
@@ -2579,6 +2585,12 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
     }
     
     RECT rectUpdate = { rcUpdate.left, rcUpdate.top, rcUpdate.right, rcUpdate.bottom };
+    if (IsMultiLine()) {
+        rectUpdate.left = 0;
+        rectUpdate.top = 0;
+        rectUpdate.right = rc.Width();
+        rectUpdate.bottom = rc.Height();
+    }
     pTextServices->TxDraw(DVASPECT_CONTENT,     // Draw Aspect
                             /*-1*/0,            // Lindex
                             nullptr,            // Info for drawing optimazation
