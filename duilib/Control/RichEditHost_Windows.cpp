@@ -26,19 +26,19 @@
 #define UI_WS_VSCROLL           0x8000L
 
 #if defined (DUILIB_COMPILER_MINGW)
-    typedef HRESULT(STDAPICALLTYPE* PShutdownTextServices)(IUnknown* pTextServices);
-    #define TXTBIT_SHOWPASSWORD		        0x800000	// Show password string
-    #define TXTBIT_FLASHLASTPASSWORDCHAR    0x10000000	// Show last password char momentarily
+typedef HRESULT(STDAPICALLTYPE* PShutdownTextServices)(IUnknown* pTextServices);
+#define TXTBIT_SHOWPASSWORD		        0x800000	// Show password string
+#define TXTBIT_FLASHLASTPASSWORDCHAR    0x10000000	// Show last password char momentarily
 #endif
 
 namespace ui
 {
 #ifndef LY_PER_INCH
-    #define LY_PER_INCH 1440
+#define LY_PER_INCH 1440
 #endif
 
 #ifndef HIMETRIC_PER_INCH
-    #define HIMETRIC_PER_INCH 2540
+#define HIMETRIC_PER_INCH 2540
 #endif
 
 EXTERN_C const IID IID_ITextServices = { // 8d33f740-cf58-11ce-a89d-00aa006cadc5
@@ -60,7 +60,7 @@ EXTERN_C const IID IID_ITextHost = { /* c5bdd8d0-d26e-11ce-a89e-00aa006cadc5 */
 class RichEditModule
 {
 private:
-    RichEditModule():
+    RichEditModule() :
         m_hRichEditModule(nullptr)
     {
     }
@@ -86,7 +86,7 @@ public:
     */
     HMODULE GetRichEditModule()
     {
-        if (m_hRichEditModule == nullptr) {         
+        if (m_hRichEditModule == nullptr) {
             m_hRichEditModule = ::LoadLibrary(RichEditCtrl::GetLibraryName());
             ASSERT(m_hRichEditModule != nullptr);
 
@@ -94,7 +94,7 @@ public:
             auto atExitCallback = []() {
                 RichEditModule::Instance().Clear();
                 return true;
-                };
+            };
             GlobalManager::Instance().AddAtExitFunction(atExitCallback);
         }
         return m_hRichEditModule;
@@ -191,8 +191,8 @@ void RichEditHost::Init()
 }
 
 ITextServices* RichEditHost::GetTextServices() const
-{ 
-    return m_pTextServices; 
+{
+    return m_pTextServices;
 }
 
 void RichEditHost::ShutdownTextServices()
@@ -381,32 +381,38 @@ void RichEditHost::TxInvalidateRect(LPCRECT prc, BOOL /*fMode*/)
 
     UiPoint scrollOffset = m_pRichEdit->GetScrollOffsetInScrollBox();
 
-    // TextServices给出的prc是相对于TxGetClientRect返回矩形左上角(0,0)的坐标
-    // 这里必须与TxGetClientRect保持一致，使用GetControlRect而不是m_rcClient，
-    // 否则在text_padding(尤其上下边距)或垂直对齐参与时会出现脏区偏移
-    UiRect rcClient = m_rcClient;
-    GetControlRect(&rcClient);
-    UiRect rc = (prc == nullptr) ? rcClient : MakeUiRect(*prc);
-    if (prc != nullptr) {
-        rc.Offset(rcClient.left, rcClient.top);
-
-        // 为了覆盖GDI文字抗锯齿可能产生的边缘外扩，适当放大脏区。
-        // 当存在底部text_padding时，底边更容易出现欠重绘，需额外向下扩展。
-        const UiPadding textPadding = m_pRichEdit->GetTextPadding();
-        const int32_t extraBottom = std::max(1, textPadding.bottom + 1);
-        rc.left -= 1;
-        rc.top -= 1;
-        rc.right += 1;
-        rc.bottom += extraBottom;
+    UiRect rcInvalid;
+    if (prc == nullptr) {
+        // prc 为空：刷新整个客户区
+        rcInvalid = m_rcClient;
     }
-    rc.Offset(-scrollOffset.x, -scrollOffset.y);
+    else {
+        // ------------------------------------------------------------------
+        // prc 是局部坐标（相对于 TxGetClientRect 返回矩形的原点，即(0,0)）
+        // 需要加上 m_rcClient 左上角偏移，转换为屏幕绝对坐标
+        //
+        // TxGetClientRect 修复后返回 {0,0,w,h}，
+        // 所以 prc 的坐标就是相对于 m_rcClient 左上角的偏移，
+        // 转换方式：屏幕坐标 = m_rcClient.左上角 + prc局部坐标
+        // ------------------------------------------------------------------
+        UiRect rcControlOrigin;
+        GetControlRect(&rcControlOrigin); // 获取含垂直对齐偏移的实际原点
 
-    // 标记窗口指定区域为脏区域，进行重绘(取控件位置部分，避免引发其他控件的重绘)
+        rcInvalid.left = rcControlOrigin.left + prc->left;
+        rcInvalid.top = rcControlOrigin.top + prc->top;
+        rcInvalid.right = rcControlOrigin.left + prc->right;
+        rcInvalid.bottom = rcControlOrigin.top + prc->bottom;
+    }
+
+    rcInvalid.Offset(-scrollOffset.x, -scrollOffset.y);
+
+    // 取与控件实际位置的交集，避免引发其他控件重绘
     UiRect rcRichEdit = m_pRichEdit->GetRect();
     rcRichEdit.Offset(-scrollOffset.x, -scrollOffset.y);
-    rc.Intersect(rcRichEdit);
-    if (!rc.IsEmpty()) {
-        pWindow->Invalidate(rc);
+    rcInvalid.Intersect(rcRichEdit);
+
+    if (!rcInvalid.IsEmpty()) {
+        pWindow->Invalidate(rcInvalid);
     }
 }
 
@@ -418,7 +424,7 @@ BOOL RichEditHost::TxCreateCaret(HBITMAP /*hbmp*/, INT xWidth, INT yHeight)
 {
     if (m_pRichEdit != nullptr) {
         m_pRichEdit->CreateCaret(xWidth, yHeight);
-    }    
+    }
     return TRUE;
 }
 
@@ -515,16 +521,44 @@ HRESULT RichEditHost::TxDeactivate(LONG /*lNewState*/)
 HRESULT RichEditHost::TxGetClientRect(LPRECT prc)
 {
     ASSERT(prc != nullptr);
-    if (prc != nullptr) {
-        UiRect rcTemp = m_rcClient;
-        GetControlRect(&rcTemp);
-
-        // TxDraw在离屏DC(原点为0,0)绘制时，TextServices内部坐标也必须使用局部坐标。
-        // 返回{0,0,w,h}可避免多行文本场景下坐标系不一致造成的错位和脏点。
-        *prc = { 0, 0, rcTemp.Width(), rcTemp.Height() };
+    if (prc == nullptr) {
+        return E_INVALIDARG;
     }
+
+    // ------------------------------------------------------------------
+    // 修复点: 返回以 (0,0) 为原点的局部坐标（位图坐标系）
+    //
+    // 原代码:
+    //   GetControlRect(&rcTemp);
+    //   *prc = { rcTemp.left, rcTemp.top, rcTemp.right, rcTemp.bottom };
+    //   返回的是屏幕绝对坐标，例如 {10, 50, 410, 250}
+    //
+    // 问题:
+    //   TextServices 用 TxGetClientRect 的返回值来定位文字的绘制位置。
+    //   PaintRichEdit 中离屏DC的原点是(0,0)，TxDraw 的 prcClient
+    //   传的是 {0, 0, w, h}，但 TxGetClientRect 返回屏幕坐标，
+    //   两者坐标系不一致。
+    //   单行影响不明显，多行时每一行的 y 坐标都会偏移 rc.top 个像素，
+    //   导致文字绘制到位图范围之外，显示为脏点。
+    //
+    // 修复后:
+    //   始终返回 {0, 0, width, height}（位图局部坐标），
+    //   与 PaintRichEdit 中传给 TxDraw 的 prcClient 一致。
+    //   TextServices 在此坐标系内计算文字位置，绘制到离屏DC时
+    //   结果正确落在位图范围内。
+    // ------------------------------------------------------------------
+    UiRect rcTemp = m_rcClient;
+    GetControlRect(&rcTemp); // 处理垂直对齐偏移
+
+    // 返回局部坐标：原点固定为 (0,0)，宽高与实际区域一致
+    prc->left = 0;
+    prc->top = 0;
+    prc->right = rcTemp.Width();
+    prc->bottom = rcTemp.Height();
+
     return NOERROR;
 }
+
 
 HRESULT RichEditHost::TxGetViewInset(LPRECT prc)
 {
@@ -600,7 +634,7 @@ HRESULT RichEditHost::TxGetPasswordChar(_Out_ TCHAR* pch)
 #ifndef DUILIB_UNICODE
     ASSERT(m_chPasswordChar <= CHAR_MAX);
 #endif // !DUILIB_UNICODE
-    *pch = (TCHAR)m_chPasswordChar;
+    * pch = (TCHAR)m_chPasswordChar;
     if (!IsPassword()) {
         //未启用密码
         return S_FALSE;
@@ -713,7 +747,7 @@ HRESULT RichEditHost::TxNotify(DWORD iNotify, void* pv)
     }
     if (m_pRichEdit != nullptr) {
         m_pRichEdit->OnTxNotify(iNotify, pv);
-    }    
+    }
     return S_OK;
 }
 
@@ -770,7 +804,7 @@ void RichEditHost::SetReadOnly(bool fReadOnly)
             m_dwStyle &= ~UI_ES_READONLY;
         }
         OnTxPropertyBitsChange(TXTBIT_READONLY, fReadOnly ? TXTBIT_READONLY : 0);
-    }    
+    }
 }
 
 bool RichEditHost::IsReadOnly() const
@@ -801,7 +835,7 @@ void RichEditHost::SetPassword(bool bPassword)
             m_dwStyle &= ~UI_ES_PASSWORD;
         }
         OnTxPropertyBitsChange(TXTBIT_USEPASSWORD, bPassword ? TXTBIT_USEPASSWORD : 0);
-    }    
+    }
 }
 
 bool RichEditHost::IsPassword() const
@@ -814,7 +848,7 @@ void RichEditHost::SetShowPassword(bool bShow)
     if (m_bShowPassword != bShow) {
         m_bShowPassword = bShow;
         OnTxPropertyBitsChange(TXTBIT_SHOWPASSWORD, bShow ? TXTBIT_SHOWPASSWORD : 0);
-    }    
+    }
 }
 
 bool RichEditHost::IsShowPassword() const
@@ -838,7 +872,7 @@ bool RichEditHost::IsFlashPasswordChar() const
 DString RichEditHost::GetPasswordText() const
 {
     DString pwdText;
-    if (IsPassword() && (m_pTextServices != nullptr)) {        
+    if (IsPassword() && (m_pTextServices != nullptr)) {
         ITextServices* pTextServices = m_pTextServices;
         BSTR bstrText = nullptr;
         HRESULT hr = pTextServices->TxGetText(&bstrText);
@@ -846,7 +880,7 @@ DString RichEditHost::GetPasswordText() const
             std::wstring pwdTextW(bstrText, SysStringLen(bstrText));
             ::SysFreeString(bstrText);
             pwdText = StringConvert::WStringToT(pwdTextW);
-        }        
+        }
     }
     return pwdText;
 }
@@ -974,7 +1008,7 @@ void RichEditHost::SetExtent(SIZEL sizelExtent)
     if ((m_sizelExtent.cx != sizelExtent.cx) || (m_sizelExtent.cy != sizelExtent.cy)) {
         m_sizelExtent = sizelExtent;
         OnTxPropertyBitsChange(TXTBIT_EXTENTCHANGE, TXTBIT_EXTENTCHANGE);
-    }    
+    }
 }
 
 void RichEditHost::SetAllowBeep(bool bAllowBeep)
@@ -1022,14 +1056,14 @@ void RichEditHost::GetControlRect(UiRect* prc)
         return;
     }
     UiRect rc = m_rcClient;
-    if ((m_dwStyle & UI_ES_VCENTER) || (m_dwStyle & UI_ES_BOTTOM)) {        
+    if ((m_dwStyle & UI_ES_VCENTER) || (m_dwStyle & UI_ES_BOTTOM)) {
         UiSize szNaturalSize = m_pRichEdit->GetNaturalSize(rc.Width(), 0);
         if (m_dwStyle & UI_ES_VCENTER) {
             //纵向居中对齐(仅当文本高度小于目标区域高度时运用)
             int32_t yOffset = (rc.Height() - szNaturalSize.cy) / 2;
             if (yOffset > 0) {
                 rc.Offset(0, yOffset);
-            }            
+            }
         }
         else if (m_dwStyle & UI_ES_BOTTOM) {
             //纵向底端对齐(仅当文本高度小于目标区域高度时运用)
@@ -1103,7 +1137,7 @@ HRESULT RichEditHost::OnTxInPlaceActivate(LPCRECT prcClient)
     if (m_pTextServices != nullptr) {
         hr = m_pTextServices->OnTxInPlaceActivate(prcClient);
     }
-    if (FAILED(hr))    {
+    if (FAILED(hr)) {
         m_fInplaceActive = false;
     }
 
@@ -1131,7 +1165,7 @@ bool RichEditHost::SetCursor(const UiRect* prc, const UiPoint* pt)
         }
         if (m_pTextServices != nullptr) {
             m_pTextServices->OnTxSetCursor(DVASPECT_CONTENT, -1, nullptr, nullptr, m_pRichEdit->GetDrawDC(),
-                                           nullptr, pRect, newPt.x, newPt.y);
+                nullptr, pRect, newPt.x, newPt.y);
             return true;
         }
     }
@@ -1143,7 +1177,7 @@ void RichEditHost::SetTransparent(bool fTransparent)
     if (m_fTransparent != fTransparent) {
         m_fTransparent = fTransparent;
         OnTxPropertyBitsChange(TXTBIT_BACKSTYLECHANGE, 0);
-    }    
+    }
 }
 
 void RichEditHost::SetSelBarWidth(LONG lSelBarWidth)
