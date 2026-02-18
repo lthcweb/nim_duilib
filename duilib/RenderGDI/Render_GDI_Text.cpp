@@ -67,6 +67,90 @@ static bool IsSegmentSame(const GdiRichTextSegment& seg, const RichTextData& src
     }
     return true;
 }
+
+static void BuildBasicLineInfo(const UiRect& textRect,
+                               IRenderFactory* pRenderFactory,
+                               const std::vector<RichTextData>& richTextData,
+                               RichTextLineInfoParam* pLineInfoParam)
+{
+    if ((pLineInfoParam == nullptr) || (pLineInfoParam->m_pLineInfoList == nullptr) || (pRenderFactory == nullptr)) {
+        return;
+    }
+    RichTextLineInfoList& lineInfoList = *pLineInfoParam->m_pLineInfoList;
+    lineInfoList.clear();
+
+    int32_t rowTop = textRect.top;
+    for (const auto& textData : richTextData) {
+        if ((textData.m_pFontInfo == nullptr) || textData.m_textView.empty()) {
+            continue;
+        }
+        std::unique_ptr<IFont> spFont(pRenderFactory->CreateIFont());
+        if ((spFont == nullptr) || !spFont->InitFont(*textData.m_pFontInfo)) {
+            continue;
+        }
+
+        std::wstring text(textData.m_textView.data(), textData.m_textView.size());
+        size_t start = 0;
+        while (start <= text.size()) {
+            size_t pos = text.find(L'\n', start);
+            std::wstring line = (pos == std::wstring::npos) ? text.substr(start) : text.substr(start, pos - start);
+            if (!line.empty() && (line.back() == L'\r')) {
+                line.pop_back();
+            }
+
+            RichTextLineInfoPtr spLineInfo(new RichTextLineInfo());
+            spLineInfo->m_lineText = line.c_str();
+            spLineInfo->m_nLineTextLen = static_cast<uint32_t>(line.size());
+
+            RichTextRowInfoPtr spRowInfo(new RichTextRowInfo());
+            int32_t rowLeft = textRect.left;
+            int32_t rowHeight = 0;
+            for (size_t i = 0; i < line.size(); ++i) {
+                UiRect chSize = UiRect();
+                // 重新创建局部测量：尽量保证结果可用于光标与选择区域
+                {
+                    // 通过 IRender 接口外不可直接访问，这里采用近似：
+                    // 使用字体高度作为最小宽度兜底
+                    chSize = UiRect(0, 0, std::max(1, textData.m_pFontInfo->m_fontSize / 2),
+                                    std::max(1, textData.m_pFontInfo->m_fontSize));
+                }
+
+                RichTextCharInfo info;
+                info.SetCharWidth(static_cast<float>(chSize.Width()));
+                if (line[i] == L'\r') {
+                    info.AddCharFlag(RichTextCharFlag::kIsReturn);
+                    info.AddCharFlag(RichTextCharFlag::kIsIgnoredChar);
+                }
+                else if (line[i] == L'\n') {
+                    info.AddCharFlag(RichTextCharFlag::kIsNewLine);
+                    info.AddCharFlag(RichTextCharFlag::kIsIgnoredChar);
+                }
+                if ((line[i] >= 0xDC00) && (line[i] <= 0xDFFF)) {
+                    info.AddCharFlag(RichTextCharFlag::kIsLowSurrogate);
+                }
+                spRowInfo->m_charInfo.push_back(info);
+                rowLeft += chSize.Width();
+                rowHeight = std::max(rowHeight, chSize.Height());
+            }
+            if (rowHeight <= 0) {
+                rowHeight = std::max(1, textData.m_pFontInfo->m_fontSize);
+            }
+            spRowInfo->m_rowRect = UiRectF((float)textRect.left, (float)rowTop, (float)rowLeft, (float)(rowTop + rowHeight));
+            spLineInfo->m_rowInfo.push_back(spRowInfo);
+            lineInfoList.push_back(spLineInfo);
+
+            rowTop += rowHeight;
+            if ((pos != std::wstring::npos) && ((textData.m_textStyle & TEXT_SINGLELINE) == 0)) {
+                start = pos + 1;
+            }
+            else {
+                break;
+            }
+        }
+    }
+    pLineInfoParam->m_nStartLineIndex = 0;
+    pLineInfoParam->m_nStartRowIndex = 0;
+}
 }
 
 UiRect Render_GDI::MeasureString(const DString& strText, const MeasureStringParam& measureParam)
@@ -345,8 +429,8 @@ void Render_GDI::MeasureRichText2(const UiRect& textRect,
                                   std::vector<std::vector<UiRect>>* pRichTextRects)
 {
     PerformanceStat statPerformance(_T("Render_GDI::MeasureRichText2"));
-    UNUSED_VARIABLE(pLineInfoParam);
     MeasureRichText(textRect, szScrollOffset, pRenderFactory, richTextData, pRichTextRects);
+    BuildBasicLineInfo(textRect, pRenderFactory, richTextData, pLineInfoParam);
 }
 
 void Render_GDI::MeasureRichText3(const UiRect& textRect,
@@ -360,6 +444,7 @@ void Render_GDI::MeasureRichText3(const UiRect& textRect,
     PerformanceStat statPerformance(_T("Render_GDI::MeasureRichText3"));
     MeasureRichText(textRect, szScrollOffset, pRenderFactory, richTextData, pRichTextRects);
     CreateDrawRichTextCache(textRect, szScrollOffset, pRenderFactory, richTextData, spDrawRichTextCache);
+    BuildBasicLineInfo(textRect, pRenderFactory, richTextData, pLineInfoParam);
 }
 
 void Render_GDI::DrawRichText(const UiRect& textRect,
@@ -378,8 +463,8 @@ void Render_GDI::DrawRichText(const UiRect& textRect,
         return;
     }
 
-    int32_t x = textRect.left;
-    int32_t y = textRect.top;
+    int32_t x = textRect.left - szScrollOffset.cx;
+    int32_t y = textRect.top - szScrollOffset.cy;
     int32_t lineHeight = 0;
     bool bSingleLine = (richTextData[0].m_textStyle & TEXT_SINGLELINE) != 0;
 
@@ -397,10 +482,10 @@ void Render_GDI::DrawRichText(const UiRect& textRect,
         dp.pFont = spFont.get();
         dp.dwTextColor = textData.m_textColor;
         dp.uFade = uFade;
-        dp.uFormat = TEXT_SINGLELINE;
+        dp.uFormat = textData.m_textStyle;
         MeasureStringParam mp;
         mp.pFont = spFont.get();
-        mp.uFormat = TEXT_SINGLELINE;
+        mp.uFormat = textData.m_textStyle;
 
         std::wstring text(textData.m_textView.data(), textData.m_textView.size());
         size_t start = 0;
@@ -532,7 +617,34 @@ bool Render_GDI::UpdateDrawRichTextCache(std::shared_ptr<DrawRichTextCache>& spO
 
 bool Render_GDI::IsDrawRichTextCacheEqual(const DrawRichTextCache& first, const DrawRichTextCache& second) const
 {
-    return (&first == &second);
+    std::lock_guard<std::mutex> guard(g_cacheMutex);
+    auto itFirst = g_cacheDataMap.find(&first);
+    auto itSecond = g_cacheDataMap.find(&second);
+    if ((itFirst == g_cacheDataMap.end()) || (itSecond == g_cacheDataMap.end())) {
+        return false;
+    }
+    const GdiRichTextCacheData& a = itFirst->second;
+    const GdiRichTextCacheData& b = itSecond->second;
+    if ((a.textRect != b.textRect) || (a.segments.size() != b.segments.size())) {
+        return false;
+    }
+    for (size_t i = 0; i < a.segments.size(); ++i) {
+        if ((a.segments[i].text != b.segments[i].text) ||
+            (a.segments[i].textColor != b.segments[i].textColor) ||
+            (a.segments[i].bgColor != b.segments[i].bgColor) ||
+            (a.segments[i].textStyle != b.segments[i].textStyle) ||
+            (a.segments[i].rowSpacingMul != b.segments[i].rowSpacingMul) ||
+            (a.segments[i].rowSpacingAdd != b.segments[i].rowSpacingAdd)) {
+            return false;
+        }
+        if ((a.segments[i].fontInfo == nullptr) != (b.segments[i].fontInfo == nullptr)) {
+            return false;
+        }
+        if ((a.segments[i].fontInfo != nullptr) && (*a.segments[i].fontInfo != *b.segments[i].fontInfo)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void Render_GDI::DrawRichTextCacheData(const std::shared_ptr<DrawRichTextCache>& spDrawRichTextCache,
@@ -542,8 +654,6 @@ void Render_GDI::DrawRichTextCacheData(const std::shared_ptr<DrawRichTextCache>&
                                        uint8_t uFade,
                                        std::vector<std::vector<UiRect>>* pRichTextRects)
 {
-    UNUSED_VARIABLE(szNewScrollOffset);
-    UNUSED_VARIABLE(rowXOffset);
     if (spDrawRichTextCache == nullptr) {
         return;
     }
@@ -577,7 +687,11 @@ void Render_GDI::DrawRichTextCacheData(const std::shared_ptr<DrawRichTextCache>&
 
     IRenderFactory* pRenderFactory = GlobalManager::Instance().GetRenderFactory();
     if (pRenderFactory != nullptr) {
-        DrawRichText(textRect, UiSize(), pRenderFactory, richTextData, uFade, pRichTextRects);
+        UiRect rcText = textRect;
+        if (!rowXOffset.empty()) {
+            rcText.Offset(rowXOffset[0], 0);
+        }
+        DrawRichText(rcText, szNewScrollOffset, pRenderFactory, richTextData, uFade, pRichTextRects);
     }
 }
 
