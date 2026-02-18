@@ -17,20 +17,22 @@
 #include "duilib/Control/Menu.h"
 #include "duilib/Box/VBox.h"
 #include "duilib/Control/Button.h"
+#include <vector>
 
 #if defined (DUILIB_BUILD_FOR_WIN) && !defined (DUILIB_BUILD_FOR_SDL)
 
 #include "duilib/Core/ControlDropTargetImpl_Windows.h"
 #include "duilib/Core/ControlDropTargetUtils.h"
 
-namespace ui {
+namespace ui
+{
 
 /** 拖放操作接口的实现（仅是拖入操作）
 */
 class RichEditDropTarget : public ControlDropTarget_Windows
 {
 public:
-    RichEditDropTarget(RichEdit* pRichEdit, ITextServices* pTextServices):
+    RichEditDropTarget(RichEdit* pRichEdit, ITextServices* pTextServices) :
         m_pRichEdit(pRichEdit),
         m_pTextServices(pTextServices),
         m_nStartChar(0),
@@ -55,7 +57,7 @@ public:
         }
 
         ControlDropTargetImpl_Windows::ParseWindowsDataObject(pDataObj, m_dropTextList, m_dropFileList);
-        if ((m_pRichEdit != nullptr) && !m_dropFileList.empty()){
+        if ((m_pRichEdit != nullptr) && !m_dropFileList.empty()) {
             if (!m_pRichEdit->IsEnableDropFile()) {
                 //不支持文件拖放操作
                 return hr;
@@ -134,7 +136,7 @@ public:
             DString limitChars = m_pRichEdit->GetLimitChars();
             if (!limitChars.empty()) {
                 //有设置限制字符
-                for (const DString& dropText: m_dropTextList) {
+                for (const DString& dropText : m_dropTextList) {
                     size_t count = dropText.size();
                     for (size_t index = 0; index < count; ++index) {
                         if (dropText[index] == L'\0') {
@@ -179,7 +181,7 @@ public:
                     if (!m_pRichEdit->IsFocused()) {
                         //必须设置为焦点控件，否则CharFromPos会失败
                         m_pRichEdit->SetFocus();
-                    }                    
+                    }
                     int32_t pos = m_pRichEdit->CharFromPos(clientPt);
                     if (pos >= 0) {
                         UiPoint charPt = m_pRichEdit->PosFromChar(pos);
@@ -325,14 +327,14 @@ private:
 
 RichEdit::RichEdit(Window* pWindow) :
     ScrollBox(pWindow, new Layout),
-    m_pRichHost(nullptr), 
-    m_bVScrollBarFixing(false), 
+    m_pRichHost(nullptr),
+    m_bVScrollBarFixing(false),
     m_bWantTab(false),
     m_bWantReturn(false),
     m_bWantCtrlReturn(false),
     m_bAllowPrompt(false),
-    m_bSelAllEver(false),         
-    m_bNoSelOnKillFocus(true), 
+    m_bSelAllEver(false),
+    m_bNoSelOnKillFocus(true),
     m_bSelAllOnFocus(false),
     m_bHideSelection(false),
     m_bContextMenuShown(false),
@@ -382,7 +384,7 @@ RichEdit::~RichEdit()
         m_pControlDropTarget = nullptr;
     }
 #endif
-    if( m_pRichHost != nullptr) {
+    if (m_pRichHost != nullptr) {
         m_richCtrl.SetTextServices(nullptr);
         m_pRichHost->ShutdownTextServices();
         m_pRichHost->Release();
@@ -466,7 +468,7 @@ void RichEdit::SetAttribute(const DString& strName, const DString& strValue)
         //水平方向对齐方式
         if (strValue.find(_T("left")) != DString::npos) {
             SetTextHAlignType(HorAlignType::kAlignLeft);
-        }        
+        }
         else if (strValue.find(_T("hcenter")) != DString::npos) {
             SetTextHAlignType(HorAlignType::kAlignCenter);
         }
@@ -477,7 +479,7 @@ void RichEdit::SetAttribute(const DString& strName, const DString& strValue)
         //垂直方向对齐方式
         if (strValue.find(_T("top")) != DString::npos) {
             SetTextVAlignType(VerAlignType::kAlignTop);
-        }        
+        }
         else if (strValue.find(_T("vcenter")) != DString::npos) {
             SetTextVAlignType(VerAlignType::kAlignCenter);
         }
@@ -605,7 +607,7 @@ void RichEdit::SetAttribute(const DString& strName, const DString& strValue)
             (zoomValue.cy >= 0) && (zoomValue.cy <= 64)) {
             m_richCtrl.SetZoom(zoomValue.cx, zoomValue.cy);
         }
-    }    
+    }
     else if ((strName == _T("auto_vscroll")) || (strName == _T("autovscroll"))) {
         //当用户在最后一行按 ENTER 时，自动将文本向上滚动一页。
         if (m_pRichHost != nullptr) {
@@ -635,7 +637,7 @@ void RichEdit::SetAttribute(const DString& strName, const DString& strValue)
         //如果 为 TRUE，则当控件处于非活动状态时，应保存所选内容的边界。
         //如果 为 FALSE，则当控件再次处于活动状态时，可以选择边界重置为 start = 0，length = 0。
         SetSaveSelection(strValue == _T("true"));
-    }    
+    }
 #else
     else if (strName == _T("zoom")) {
         //缩放比例：
@@ -648,7 +650,7 @@ void RichEdit::SetAttribute(const DString& strName, const DString& strValue)
         //    (zoomValue.cy >= 0) && (zoomValue.cy <= 64)) {
         //    m_richCtrl.SetZoom(zoomValue.cx, zoomValue.cy);
         //}
-    }    
+    }
     else if ((strName == _T("auto_vscroll")) || (strName == _T("autovscroll"))) {
         //当用户在最后一行按 ENTER 时，自动将文本向上滚动一页。
         //if (m_pRichHost != nullptr) {
@@ -1201,12 +1203,12 @@ void RichEdit::SetTextId(const DString& strTextId)
 }
 
 bool RichEdit::GetModify() const
-{ 
+{
     return m_richCtrl.GetModify();
 }
 
 void RichEdit::SetModify(bool bModified)
-{ 
+{
     m_richCtrl.SetModify(bModified);
 }
 
@@ -1387,7 +1389,7 @@ int32_t RichEdit::LineFromChar(int32_t nIndex) const
 }
 
 UiPoint RichEdit::PosFromChar(int32_t lChar) const
-{ 
+{
     POINT pt = m_richCtrl.PosFromChar(lChar);
     return UiPoint(pt.x, pt.y);
 }
@@ -1408,71 +1410,70 @@ uint32_t RichEdit::SetUndoLimit(uint32_t nLimit)
     return m_richCtrl.SetUndoLimit(nLimit);
 }
 
-void RichEdit::OnTxNotify(DWORD iNotify, void *pv)
+void RichEdit::OnTxNotify(DWORD iNotify, void* pv)
 {
-    switch(iNotify)
-    { 
-    case EN_LINK:   
-        {
+    switch (iNotify) {
+    case EN_LINK:
+    {
 #ifdef DUILIB_RICHEDIT_SUPPORT_RICHTEXT
-            NMHDR* hdr = (NMHDR*) pv;
-            ENLINK* link = (ENLINK*)hdr;
+        NMHDR* hdr = (NMHDR*)pv;
+        ENLINK* link = (ENLINK*)hdr;
 
-            if((link != nullptr) && (link->msg == WM_LBUTTONUP)) {
-                CHARRANGE oldSel = {0, 0};
-                GetSel(oldSel);
-                SetSel(link->chrg);
-                DString url = GetSelText();
-                const DString prefix = _T("HYPERLINK ");
-                size_t pos = url.find(prefix);
-                if (pos == 0) {
-                    url = url.substr(prefix.size());
-                    if (!url.empty() && url.front() == _T('\"')) {
-                        url.erase(url.begin());
-                        pos = url.find(_T('\"'));
-                        if (pos != DString::npos) {
-                            url.resize(pos);
-                        }
+        if ((link != nullptr) && (link->msg == WM_LBUTTONUP)) {
+            CHARRANGE oldSel = { 0, 0 };
+            GetSel(oldSel);
+            SetSel(link->chrg);
+            DString url = GetSelText();
+            const DString prefix = _T("HYPERLINK ");
+            size_t pos = url.find(prefix);
+            if (pos == 0) {
+                url = url.substr(prefix.size());
+                if (!url.empty() && url.front() == _T('\"')) {
+                    url.erase(url.begin());
+                    pos = url.find(_T('\"'));
+                    if (pos != DString::npos) {
+                        url.resize(pos);
                     }
                 }
-                SetSel(oldSel);
-                if (!url.empty()) {
-                    this->SendEvent(kEventLinkClick, (WPARAM)url.c_str());
-                }
             }
-#endif
+            SetSel(oldSel);
+            if (!url.empty()) {
+                this->SendEvent(kEventLinkClick, (WPARAM)url.c_str());
+            }
         }
-        break;
+#endif
+    }
+    break;
     case EN_CHANGE:
         //文本内容变化，发送事件
-        OnTextChanged();            
-        break;
+    OnTextChanged();
+    break;
     case EN_SELCHANGE:
         //选择变化
-        SendEvent(kEventSelChanged);
-        break;
-    case EN_DROPFILES:   
-    case EN_MSGFILTER:   
-    case EN_OLEOPFAILED:    
+    SendEvent(kEventSelChanged);
+    break;
+    case EN_DROPFILES:
+    case EN_MSGFILTER:
+    case EN_OLEOPFAILED:
     case EN_PROTECTED:
-    case EN_SAVECLIPBOARD:     
-    case EN_STOPNOUNDO:   
-    case EN_OBJECTPOSITIONS:   
-    case EN_DRAGDROPDONE:   
-        {
-            if (pv) {   // Fill out NMHDR portion of pv   
-                LONG nId =  ::GetWindowLong(GetWindowHWND(), GWL_ID);
-                NMHDR  *phdr = (NMHDR *)pv;   
-                phdr->hwndFrom = GetWindowHWND();
-                phdr->idFrom = nId;   
-                phdr->code = iNotify;  
+    case EN_SAVECLIPBOARD:
+    case EN_STOPNOUNDO:
+    case EN_OBJECTPOSITIONS:
+    case EN_DRAGDROPDONE:
+    {
+        if (pv) {   // Fill out NMHDR portion of pv   
+            LONG nId = ::GetWindowLong(GetWindowHWND(), GWL_ID);
+            NMHDR* phdr = (NMHDR*)pv;
+            phdr->hwndFrom = GetWindowHWND();
+            phdr->idFrom = nId;
+            phdr->code = iNotify;
 
-                ::SendMessage(GetWindowHWND(), WM_NOTIFY, (WPARAM)nId, (LPARAM)pv);
-            }    
+            ::SendMessage(GetWindowHWND(), WM_NOTIFY, (WPARAM)nId, (LPARAM)pv);
         }
-        break;
+    }
+    break;
     default:
-        break;
+    break;
     }
 }
 
@@ -1495,8 +1496,8 @@ UiSize RichEdit::GetNaturalSize(LONG width, LONG height)
     }
     if (height < 0) {
         height = 0;
-    }    
-    UiSize sz(0,0);
+    }
+    UiSize sz(0, 0);
     LONG lWidth = width;
     LONG lHeight = height;
     SIZEL szExtent = { -1, -1 };
@@ -1507,13 +1508,13 @@ UiSize RichEdit::GetNaturalSize(LONG width, LONG height)
     }
     if (pTextServices != nullptr) {
         pTextServices->TxGetNaturalSize(DVASPECT_CONTENT,
-                                        GetDrawDC(),
-                                        nullptr,
-                                        nullptr,
-                                        TXTNS_FITTOCONTENT,
-                                        &szExtent,
-                                        &lWidth,
-                                        &lHeight);
+            GetDrawDC(),
+            nullptr,
+            nullptr,
+            TXTNS_FITTOCONTENT,
+            &szExtent,
+            &lWidth,
+            &lHeight);
     }
     sz.cx = (int)lWidth;
     sz.cy = (int)lHeight;
@@ -1546,7 +1547,7 @@ bool RichEdit::ScreenToClient(UiPoint& pt)
 {
     bool bRet = false;
     if (m_pRichHost != nullptr) {
-        POINT point = {pt.x, pt.y};
+        POINT point = { pt.x, pt.y };
         bRet = m_pRichHost->TxScreenToClient(&point);
         pt.x = point.x;
         pt.y = point.y;
@@ -1585,30 +1586,30 @@ void RichEdit::SetScrollPos(UiSize64 szPos)
     int64_t cy = 0;
     ScrollBar* pVScrollBar = GetVScrollBar();
     ScrollBar* pHScrollBar = GetHScrollBar();
-    if ((pVScrollBar != nullptr) && pVScrollBar->IsValid() ) {
+    if ((pVScrollBar != nullptr) && pVScrollBar->IsValid()) {
         int64_t iLastScrollPos = pVScrollBar->GetScrollPos();
         pVScrollBar->SetScrollPos(szPos.cy);
         cy = pVScrollBar->GetScrollPos() - iLastScrollPos;
     }
-    if ((pHScrollBar != nullptr) && pHScrollBar->IsValid() ) {
+    if ((pHScrollBar != nullptr) && pHScrollBar->IsValid()) {
         int64_t iLastScrollPos = pHScrollBar->GetScrollPos();
         pHScrollBar->SetScrollPos(szPos.cx);
         cx = pHScrollBar->GetScrollPos() - iLastScrollPos;
     }
-    if( cy != 0 ) {
+    if (cy != 0) {
         int64_t iPos = 0;
         if (!bRichText && (pVScrollBar != nullptr) && pVScrollBar->IsValid()) {
             iPos = pVScrollBar->GetScrollPos();
         }
         WPARAM wParam = MAKEWPARAM(SB_THUMBPOSITION, (pVScrollBar != nullptr) ? pVScrollBar->GetScrollPos() : 0);
         m_richCtrl.TxSendMessage(WM_VSCROLL, wParam, 0L);
-        if(!bRichText && (pVScrollBar != nullptr) && pVScrollBar->IsValid() ) {
+        if (!bRichText && (pVScrollBar != nullptr) && pVScrollBar->IsValid()) {
             if (cy > 0 && pVScrollBar->GetScrollPos() <= iPos) {
                 pVScrollBar->SetScrollPos(iPos);
             }
         }
     }
-    if( cx != 0 ) {
+    if (cx != 0) {
         WPARAM wParam = MAKEWPARAM(SB_THUMBPOSITION, (pHScrollBar != nullptr) ? pHScrollBar->GetScrollPos() : 0);
         m_richCtrl.TxSendMessage(WM_HSCROLL, wParam, 0L);
     }
@@ -1633,7 +1634,7 @@ void RichEdit::LineDown(int32_t /*deltaValue*/, bool /*withAnimation*/)
         iPos = pVScrollBar->GetScrollPos();
     }
     m_richCtrl.TxSendMessage(WM_VSCROLL, SB_LINEDOWN, 0L);
-    if(!bRichText && (pVScrollBar != nullptr) && pVScrollBar->IsValid() ) {
+    if (!bRichText && (pVScrollBar != nullptr) && pVScrollBar->IsValid()) {
         if (pVScrollBar->GetScrollPos() <= iPos) {
             pVScrollBar->SetScrollPos(pVScrollBar->GetScrollRange());
         }
@@ -1839,7 +1840,7 @@ void RichEdit::SetPos(UiRect rc)
         }
     }
 
-    if ((pVScrollBar != nullptr) && pVScrollBar->IsValid()) {        
+    if ((pVScrollBar != nullptr) && pVScrollBar->IsValid()) {
         int32_t nHScrollbarHeight = 0; //横向滚动条的高度
         UiRect rcScrollBarPos(rc.right, rc.top, rc.right + pVScrollBar->GetFixedWidth().GetInt32(), rc.bottom);
         if ((pHScrollBar != nullptr) && pHScrollBar->IsValid()) {
@@ -1911,7 +1912,7 @@ void RichEdit::HandleEvent(const EventArgs& msg)
         CheckSelAllOnFocus();
         return;
     }
-    if (msg.eventType == kEventMouseButtonUp) {        
+    if (msg.eventType == kEventMouseButtonUp) {
         OnMouseMessage(WM_LBUTTONUP, msg);
         return;
     }
@@ -1976,7 +1977,7 @@ bool RichEdit::OnSetFocus(const EventArgs& /*msg*/)
         pWindow->NativeWnd()->SetImeOpenStatus(bEnableIME);
     }
 
-    if ((m_pClearButton != nullptr) && !IsReadOnly()){
+    if ((m_pClearButton != nullptr) && !IsReadOnly()) {
         m_pClearButton->SetFadeVisible(true);
     }
     if ((m_pShowPasswordButton != nullptr) && IsPasswordMode() && !IsShowPassword()) {
@@ -2086,7 +2087,7 @@ bool RichEdit::OnChar(const EventArgs& msg)
     }
     else {
         m_richCtrl.TxSendMessage(WM_CHAR, wParam, lParam);
-    }    
+    }
 #else
     //只支持1字节和2字节的文字输入，不支持4字节的文字输入
     if ((::GetTickCount() - m_dwLastCharTime) > 5000) {
@@ -2101,12 +2102,12 @@ bool RichEdit::OnChar(const EventArgs& msg)
     }
     else {
         if (m_pendingChars.size() == 1) {
-            BYTE chMBCS[8] = {m_pendingChars.front(), (BYTE)msg.wParam, 0, };
-            DStringW::value_type chWideChar[4] = {0, };
+            BYTE chMBCS[8] = { m_pendingChars.front(), (BYTE)msg.wParam, 0, };
+            DStringW::value_type chWideChar[4] = { 0, };
             ::MultiByteToWideChar(CP_ACP, 0, (const char*)chMBCS, 2, chWideChar, 4);
             if (chWideChar[0] != 0) {
                 WPARAM wParam = chWideChar[0];
-                m_richCtrl.TxSendMessage(WM_CHAR, wParam, msg.lParam);                
+                m_richCtrl.TxSendMessage(WM_CHAR, wParam, msg.lParam);
                 bHandled = true;
             }
             m_pendingChars.clear();
@@ -2119,7 +2120,7 @@ bool RichEdit::OnChar(const EventArgs& msg)
     m_dwLastCharTime = ::GetTickCount();
     if (!bHandled) {
         m_richCtrl.TxSendMessage(WM_CHAR, msg.wParam, msg.lParam);
-    }    
+    }
 #endif    
     return true;
 }
@@ -2296,50 +2297,48 @@ void RichEdit::Paint(IRender* pRender, const UiRect& rcPaint)
         return;
     }
 
-    UiRect rc;
-    m_pRichHost->GetControlRect(&rc);
-
-    if (bNeedPaint) {
-#if !defined (DUILIB_RICH_EDIT_DRAW_OPT) 
-        HDC hdc = pRender->GetRenderDC(GetWindow()->NativeWnd()->GetHWND());
-#else
-        HDC hdc = nullptr;
-#endif
-        if(hdc != nullptr){
-            RECT paintRect = { rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom };
-            pTextServices->TxDraw(DVASPECT_CONTENT,     // Draw Aspect
-                                  /*-1*/0,              // Lindex
-                                  nullptr,              // Info for drawing optimazation
-                                  nullptr,              // target device information
-                                  hdc,                  // Draw device HDC
-                                  nullptr,              // Target device HDC
-                                  (RECTL*)&rc,          // Bounding client rectangle
-                                  nullptr,              // Clipping rectangle for metafiles
-                                  &paintRect,           // Update rectangle
-                                  nullptr,              // Call back function
-                                  0,                    // Call back parameter
-                                  0);                   // What view of the object
-
-            pRender->ReleaseRenderDC(hdc);
-            //绘制完成后，做标记，避免重复绘制
-            bNeedPaint = false;
+    // 同步TextServices背景色：按常规Edit控件风格使用控件背景色
+    if (!GetBkColor().empty()) {
+        UiColor bkColor = GetUiColor(GetBkColor());
+        if (!bkColor.IsEmpty()) {
+            COLORREF crBk = RGB(bkColor.GetR(), bkColor.GetG(), bkColor.GetB());
+            m_richCtrl.SetBackgroundColor(crBk);
+        }
+        else {
+            m_richCtrl.SetBackgroundColor();
         }
     }
+    else {
+        m_richCtrl.SetBackgroundColor();
+    }
+
+    // 统一使用PaintRichEdit离屏路径，避免窗口DC直绘与渲染引擎合成路径不一致导致的残影/脏块
     if (bNeedPaint) {
         PaintRichEdit(pRender, rcPaint);
     }
 
     ScrollBar* pVScrollBar = GetVScrollBar();
     if (m_bVScrollBarFixing && (pVScrollBar != nullptr)) {
-        LONG lWidth = rc.Width() + pVScrollBar->GetFixedWidth().GetInt32();
+        // 与SetPos中的滚动条修正逻辑保持一致：使用去掉控件padding后的可布局区域做判断，
+        // 避免text_padding(尤其bottom)导致高度基准不一致，从而触发重复Arrange。
+        UiRect rcLayout = GetRectWithoutPadding();
+        if (pVScrollBar->IsValid()) {
+            rcLayout.right -= pVScrollBar->GetFixedWidth().GetInt32();
+        }
+        ScrollBar* pHScrollBar = GetHScrollBar();
+        if ((pHScrollBar != nullptr) && pHScrollBar->IsValid()) {
+            rcLayout.bottom -= pHScrollBar->GetFixedHeight().GetInt32();
+        }
+
+        LONG lWidth = rcLayout.Width() + pVScrollBar->GetFixedWidth().GetInt32();
         UiSize szNaturalSize = GetNaturalSize(lWidth, 0);
-        if(szNaturalSize.cy <= rc.Height() ) {
+        if (szNaturalSize.cy <= rcLayout.Height()) {
             Arrange();
         }
     }
 }
 
-RichEdit::TxDrawData::TxDrawData():
+RichEdit::TxDrawData::TxDrawData() :
     m_hDrawDC(nullptr),
     m_hOldBitmap(nullptr),
     m_hBitmap(nullptr),
@@ -2408,7 +2407,7 @@ bool RichEdit::TxDrawData::CheckCreateBitmap(HDC hWindowDC, int32_t nWidth, int3
                 m_hBitmap = nullptr;
             }
             m_pBitmapBits = nullptr;
-        }        
+        }
     }
     return (m_hBitmap != nullptr) && (m_pBitmapBits != nullptr) && (m_hDrawDC != nullptr);
 }
@@ -2432,6 +2431,7 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
         return;
     }
 
+    // rc: TextServices 绘制区域（屏幕绝对坐标，已减去 text_padding）
     const UiRect rc = m_pRichHost->GetControlRect();
     if (rc.IsEmpty()) {
         return;
@@ -2440,11 +2440,9 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
     std::vector<UiRect> clipRects;
     RenderClipType clipType = pRender->GetClipInfo(clipRects);
     if (clipType == RenderClipType::kEmpty) {
-        //如果裁剪区域为空，不需要绘制
         return;
     }
 
-    //获取与本控件的绘制区域交集
     const UiRect& rcDirty = GetPaintRect();
     ASSERT(!rcDirty.IsEmpty());
     if (rcDirty.IsEmpty()) {
@@ -2459,152 +2457,134 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
 
     if (!clipRects.empty()) {
         bool bHasIntersect = false;
-        std::vector<UiRect> intersectClipRects;
         for (const UiRect& clipRect : clipRects) {
             UiRect rcCheck = rcUpdate;
             if (rcCheck.Intersect(clipRect)) {
                 bHasIntersect = true;
-                intersectClipRects.push_back(clipRect);
+                break;
             }
         }
         if (!bHasIntersect) {
-            //脏区域矩形与裁剪区域矩形无交集，无需绘制
-            return;
-        }
-
-        //去剪辑区域的交集，避免出现绘制溢出的现象
-        for (const UiRect& clipRect : intersectClipRects) {
-            rcUpdate.Intersect(clipRect);
-        }
-        if (rcUpdate.IsEmpty()) {
             return;
         }
     }
 
-    //创建绘制所需DC和位图
     bool bRet = m_txDrawData.CheckCreateBitmap(GetDrawDC(), rc.Width(), rc.Height());
     ASSERT(bRet);
     if (!bRet) {
         return;
     }
 
-    HDC hDrawDC = m_txDrawData.m_hDrawDC;
+    HDC    hDrawDC = m_txDrawData.m_hDrawDC;
     LPVOID pBitmapBits = m_txDrawData.m_pBitmapBits;
     ASSERT((pBitmapBits != nullptr) && (hDrawDC != nullptr));
     if ((pBitmapBits == nullptr) || (hDrawDC == nullptr)) {
         return;
     }
 
-    //复制渲染引擎源位图数据
-    bRet = pRender->ReadPixels(rc, pBitmapBits, rc.Width() * rc.Height() * sizeof(uint32_t));
-    ASSERT(bRet);
-    if (!bRet) {
-        return;
+    ::SelectClipRgn(hDrawDC, nullptr);
+
+    // 全量填充背景色
+    UiColor bkColor = UiColor(UiColors::White);
+    if (!GetBkColor().empty()) {
+        UiColor c = GetUiColor(GetBkColor());
+        if (!c.IsEmpty()) {
+            bkColor = c;
+        }
     }
+    const uint8_t bgB = bkColor.GetB();
+    const uint8_t bgG = bkColor.GetG();
+    const uint8_t bgR = bkColor.GetR();
 
-    //更新区域（相对于位图左上角坐标）
-    rcUpdate.Offset(-rc.left, -rc.top);
+    constexpr int32_t nColorBits = sizeof(uint32_t);
+    const int32_t     nBitmapW = rc.Width();
+    const int32_t     nBitmapH = rc.Height();
+    const int32_t     nTotalPixels = nBitmapW * nBitmapH;
 
-    //清除Alpha通道（标记为全部透明）
-    const int32_t nTop = std::max(rcUpdate.top, 0);
-    const int32_t nBottom = std::min(rcUpdate.bottom, rc.Height());
-    const int32_t nLeft = std::max(rcUpdate.left, 0);
-    const int32_t nRight = std::min(rcUpdate.right, rc.Width());
-    const int32_t nWidth = rc.Width();
-
-
-    constexpr const int32_t nColorBits = sizeof(uint32_t); //每个颜色点所占字节数
-    uint8_t* pRowStart = nullptr; //每行Alpha通道值起始的位置
-    uint8_t* pRowEnd = nullptr;   //每行Alpha通道值结束的位置
-
-    for (int32_t i = nTop; i < nBottom; ++i) {
-        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
-        pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
-        while (pRowStart < pRowEnd) {
-            *pRowStart = 0;
-            pRowStart += 4;
+    {
+        uint8_t* p = (uint8_t*)pBitmapBits;
+        uint8_t* pEnd = p + (size_t)nTotalPixels * nColorBits;
+        while (p < pEnd) {
+            p[0] = bgB;
+            p[1] = bgG;
+            p[2] = bgR;
+            p[3] = 255;
+            p += 4;
         }
     }
 
-    //位图的矩形区域
-    RECTL rcBitmap = { 0, };
-    rcBitmap.left = 0;
-    rcBitmap.top = 0;
-    rcBitmap.right = rcBitmap.left + rc.Width();
-    rcBitmap.bottom = rcBitmap.top + rc.Height();
-
-    //设置裁剪信息，避免绘制非更新区域
-    bool bSetClipRect = false;
+    // 设置 DC 裁剪区（位图局部坐标）
     if (!clipRects.empty()) {
-        size_t nCount = clipRects.size() + 1;
+        size_t nCount = clipRects.size();
         size_t nSize = sizeof(RGNDATAHEADER) + nCount * sizeof(RECT);
         RGNDATA* rgnData = (RGNDATA*)::malloc(nSize);
-        ASSERT(rgnData != nullptr);
         if (rgnData != nullptr) {
             memset(rgnData, 0, nSize);
             rgnData->rdh.dwSize = sizeof(RGNDATAHEADER);
             rgnData->rdh.iType = RDH_RECTANGLES;
             rgnData->rdh.nCount = (DWORD)nCount;
-            rgnData->rdh.rcBound.left = 0;
-            rgnData->rdh.rcBound.top = 0;
-            rgnData->rdh.rcBound.right = rc.Width();
-            rgnData->rdh.rcBound.bottom = rc.Height();
+            rgnData->rdh.rcBound = { 0, 0, nBitmapW, nBitmapH };
 
-            nCount = 0;
             LPRECT pRc = (LPRECT)rgnData->Buffer;
-            for (UiRect clipRect : clipRects) {
+            for (size_t i = 0; i < nCount; ++i) {
+                UiRect clipRect = clipRects[i];
+                // 屏幕坐标 → 位图局部坐标
                 clipRect.Offset(-rc.left, -rc.top);
-                RECT rcClip = { clipRect.left, clipRect.top, clipRect.right, clipRect.bottom };
-                pRc[nCount++] = rcClip;
+                clipRect.Intersect(UiRect(0, 0, nBitmapW, nBitmapH));
+                pRc[i] = { clipRect.left, clipRect.top, clipRect.right, clipRect.bottom };
             }
-
-            RECT rcClip = { rcUpdate.left, rcUpdate.top, rcUpdate.right, rcUpdate.bottom };
-            pRc[nCount++] = rcClip;
-
             HRGN hRgn = ::ExtCreateRegion(nullptr, (DWORD)nSize, rgnData);
             ::free(rgnData);
             if (hRgn != nullptr) {
-                bSetClipRect = true;
                 ::SelectClipRgn(hDrawDC, hRgn);
                 ::DeleteObject(hRgn);
             }
         }
     }
-    if (!bSetClipRect) {
-        ::IntersectClipRect(hDrawDC, rcUpdate.left, rcUpdate.top, rcUpdate.right, rcUpdate.bottom);
-    }
-    
-    RECT rectUpdate = { rcUpdate.left, rcUpdate.top, rcUpdate.right, rcUpdate.bottom };
-    pTextServices->TxDraw(DVASPECT_CONTENT,     // Draw Aspect
-                            /*-1*/0,            // Lindex
-                            nullptr,            // Info for drawing optimazation
-                            nullptr,            // target device information
-                            hDrawDC,            // Draw device HDC
-                            nullptr,            // Target device HDC
-                            &rcBitmap,          // Bounding client rectangle
-                            nullptr,            // Clipping rectangle for metafiles
-                            &rectUpdate,        // Update rectangle
-                            nullptr,            // Call back function
-                            0,                  // Call back parameter
-                            0);                 // What view of the object
 
-    //恢复Alpha(绘制过程中，会导致绘制区域部分的Alpha通道出现异常)
-    for (int32_t i = nTop; i < nBottom; ++i) {
-        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
-        pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
-        while (pRowStart < pRowEnd) {
-            if (*pRowStart == 0) {
-                *pRowStart = 255;
-            }
-            pRowStart += 4;
+    // ------------------------------------------------------------------
+    // TxDraw: prcClient 和 prcUpdate 均使用位图局部坐标 {0,0,w,h}
+    // 与修复后的 TxGetClientRect 返回值一致，TextServices 在同一
+    // 坐标系内计算并绘制文字，多行时每一行位置均正确。
+    // ------------------------------------------------------------------
+    RECTL rcBitmap = { 0, 0, nBitmapW, nBitmapH };
+    RECT  rectUpdate = { 0, 0, nBitmapW, nBitmapH };
+
+    pTextServices->TxDraw(
+        DVASPECT_CONTENT,
+        0,
+        nullptr,
+        nullptr,
+        hDrawDC,
+        nullptr,
+        &rcBitmap,
+        nullptr,
+        &rectUpdate,
+        nullptr,
+        0,
+        0);
+
+    // 全量修正 Alpha 通道
+    {
+        uint8_t* p = (uint8_t*)pBitmapBits + 3;
+        uint8_t* pEnd = (uint8_t*)pBitmapBits + (size_t)nTotalPixels * nColorBits;
+        while (p < pEnd) {
+            *p = 255;
+            p += 4;
         }
     }
 
-    //将绘制完成的数据，回写到渲染引擎位图
-    rcUpdate.Offset(rc.left, rc.top);
-    bRet = pRender->WritePixels(pBitmapBits, rc.Width() * rc.Height() * sizeof(uint32_t), rc, rcUpdate);
+    // WritePixels: 位图写回渲染引擎
+    // srcRect = rc (屏幕绝对坐标，定位位图在屏幕上的位置)
+    // dstRect = rcUpdate (本次实际需要刷新的区域)
+    bRet = pRender->WritePixels(
+        pBitmapBits,
+        (size_t)nBitmapW * nBitmapH * sizeof(uint32_t),
+        rc,
+        rcUpdate);
     ASSERT(bRet);
 }
+
 
 void RichEdit::PaintChild(IRender* pRender, const UiRect& rcPaint)
 {
@@ -2802,7 +2782,7 @@ void RichEdit::PaintCaret(IRender* pRender, const UiRect& /*rcPaint*/)
 
 void RichEdit::SetPromptMode(bool bPrompt)
 {
-    if(bPrompt == m_bAllowPrompt)
+    if (bPrompt == m_bAllowPrompt)
         return;
     m_bAllowPrompt = bPrompt;
     Invalidate();
@@ -2891,7 +2871,7 @@ DString RichEdit::GetFocusedImage()
     return DString();
 }
 
-void RichEdit::SetFocusedImage( const DString& strImage )
+void RichEdit::SetFocusedImage(const DString& strImage)
 {
     if (m_pFocusedImage == nullptr) {
         m_pFocusedImage = new Image;
@@ -2909,7 +2889,7 @@ void RichEdit::PaintStateImages(IRender* pRender)
     if (IsFocused()) {
         if (m_pFocusedImage != nullptr) {
             PaintImage(pRender, m_pFocusedImage);
-        }        
+        }
         PaintPromptText(pRender);
     }
     else {
@@ -2965,7 +2945,7 @@ void RichEdit::ClearImageCache()
     BaseClass::ClearImageCache();
     if (m_pFocusedImage != nullptr) {
         m_pFocusedImage->ClearImageCache();
-    }    
+    }
 }
 
 void RichEdit::SetTextPadding(UiPadding padding, bool bNeedDpiScale)
@@ -2997,27 +2977,27 @@ void RichEdit::SetUseControlCursor(bool bUseControlCursor)
     m_bUseControlCursor = bUseControlCursor;
 }
 
-void RichEdit::GetClipboardText(DStringW& out )
+void RichEdit::GetClipboardText(DStringW& out)
 {
     out.clear();
     BOOL ret = ::OpenClipboard(nullptr);
-    if(ret) {
-        if(::IsClipboardFormatAvailable(CF_UNICODETEXT)) {
+    if (ret) {
+        if (::IsClipboardFormatAvailable(CF_UNICODETEXT)) {
             HANDLE h = ::GetClipboardData(CF_UNICODETEXT);
-            if(h != INVALID_HANDLE_VALUE) {
+            if (h != INVALID_HANDLE_VALUE) {
                 DStringW::value_type* buf = (DStringW::value_type*)::GlobalLock(h);
-                if(buf != nullptr)    {
-                    DStringW str(buf, GlobalSize(h)/sizeof(DStringW::value_type));
+                if (buf != nullptr) {
+                    DStringW str(buf, GlobalSize(h) / sizeof(DStringW::value_type));
                     out = str;
                     ::GlobalUnlock(h);
                 }
             }
         }
-        else if(::IsClipboardFormatAvailable(CF_TEXT)) {
+        else if (::IsClipboardFormatAvailable(CF_TEXT)) {
             HANDLE h = ::GetClipboardData(CF_TEXT);
-            if(h != INVALID_HANDLE_VALUE) {
+            if (h != INVALID_HANDLE_VALUE) {
                 char* buf = (char*)::GlobalLock(h);
-                if(buf != nullptr)    {
+                if (buf != nullptr) {
                     std::string str(buf, GlobalSize(h));
                     out = StringConvert::MBCSToUnicode(str);
                     ::GlobalUnlock(h);
@@ -3029,7 +3009,7 @@ void RichEdit::GetClipboardText(DStringW& out )
 }
 
 void RichEdit::AttachSelChanged(const EventCallback& callback, EventCallbackID callbackID)
-{ 
+{
     AttachEvent(kEventSelChanged, callback, callbackID);
     uint32_t oldEventMask = m_richCtrl.GetEventMask();
     if (!(oldEventMask & ENM_SELCHANGE)) {
@@ -3037,7 +3017,7 @@ void RichEdit::AttachSelChanged(const EventCallback& callback, EventCallbackID c
         ASSERT(m_richCtrl.GetEventMask() & ENM_SELCHANGE);
         ASSERT(m_richCtrl.GetEventMask() & ENM_CHANGE);
         ASSERT(m_richCtrl.GetEventMask() & ENM_LINK);
-    }    
+    }
 }
 
 void RichEdit::SetEnableWheelZoom(bool bEnable)
@@ -3090,7 +3070,7 @@ void RichEdit::ShowPopupMenu(const ui::UiPoint& point)
     }
 
     //如果没有选中文本，则将光标切换到当前点击的位置
-    int32_t nStartChar = 0; 
+    int32_t nStartChar = 0;
     int32_t nEndChar = 0;
     pRichEdit->GetSel(nStartChar, nEndChar);
     if (nStartChar == nEndChar) {
@@ -3100,7 +3080,7 @@ void RichEdit::ShowPopupMenu(const ui::UiPoint& point)
             pRichEdit->GetSel(nStartChar, nEndChar);
         }
     }
-    
+
     DString skinFolder = _T("public/menu/");
     Menu* menu = new Menu(GetWindow());//需要设置父窗口，否在菜单弹出的时候，程序状态栏编程非激活状态
     menu->SetSkinFolder(skinFolder);
@@ -3117,7 +3097,7 @@ void RichEdit::ShowPopupMenu(const ui::UiPoint& point)
         if (!richEditFlag.expired()) {
             m_bContextMenuShown = false;
             //恢复HideSelection属性
-            if((m_pRichHost != nullptr) && (m_pRichHost->IsHideSelection() != m_bHideSelection) && !IsFocused()) {
+            if ((m_pRichHost != nullptr) && (m_pRichHost->IsHideSelection() != m_bHideSelection) && !IsFocused()) {
                 m_pRichHost->SetHideSelection(m_bHideSelection);
             }
         }
@@ -3266,7 +3246,7 @@ bool RichEdit::SetSpinClass(const DString& spinClass)
     if (!spinClass.empty()) {
         ASSERT(!spinBoxClass.empty() && !spinBtnUpClass.empty() && !spinBtnDownClass.empty());
     }
-    if (!spinBoxClass.empty() && !spinBtnUpClass.empty() && !spinBtnDownClass.empty()) {        
+    if (!spinBoxClass.empty() && !spinBtnUpClass.empty() && !spinBtnDownClass.empty()) {
         Button* pUpButton = nullptr;
         Button* pDownButton = nullptr;
         if (m_pSpinBox == nullptr) {
@@ -3281,7 +3261,7 @@ bool RichEdit::SetSpinClass(const DString& spinClass)
         }
         else {
             pUpButton = dynamic_cast<Button*>(m_pSpinBox->GetItemAt(0));
-            pDownButton = dynamic_cast<Button*>(m_pSpinBox->GetItemAt(1));            
+            pDownButton = dynamic_cast<Button*>(m_pSpinBox->GetItemAt(1));
         }
 
         ASSERT((pUpButton != nullptr) && (pDownButton != nullptr));
@@ -3293,10 +3273,10 @@ bool RichEdit::SetSpinClass(const DString& spinClass)
         m_pSpinBox->SetClass(spinBoxClass);
         pUpButton->SetClass(spinBtnUpClass);
         pDownButton->SetClass(spinBtnDownClass);
-        
+
         //挂载事件处理
         pUpButton->DetachEvent(kEventClick);
-        pUpButton->AttachClick([this](const EventArgs& /*args*/){
+        pUpButton->AttachClick([this](const EventArgs& /*args*/) {
             AdjustTextNumber(1);
             return true;
             });
@@ -3349,7 +3329,7 @@ bool RichEdit::SetSpinClass(const DString& spinClass)
         if (m_pSpinBox != nullptr) {
             RemoveItem(m_pSpinBox);
             m_pSpinBox = nullptr;
-        }    
+        }
     }
     return false;
 }
@@ -3368,7 +3348,7 @@ bool RichEdit::SetEnableSpin(bool bEnable, const DString& spinClass, int32_t nMi
             if ((nMin != 0) || (nMax != 0)) {
                 SetMaxNumber(nMax);
                 SetMinNumber(nMin);
-            }            
+            }
         }
     }
     else {
@@ -3379,7 +3359,7 @@ bool RichEdit::SetEnableSpin(bool bEnable, const DString& spinClass, int32_t nMi
             SetNumberOnly(false);
             SetMaxNumber(INT_MAX);
             SetMinNumber(INT_MIN);
-        }        
+        }
     }
     return bRet;
 }
@@ -3609,7 +3589,7 @@ void RichEdit::SetTextHAlignType(HorAlignType alignType)
     pf.dwMask |= PFM_ALIGNMENT;
     if (alignType == HorAlignType::kAlignCenter) {
         pf.wAlignment = PFA_CENTER;
-    }        
+    }
     else if (alignType == HorAlignType::kAlignRight) {
         pf.wAlignment = PFA_RIGHT;
     }
@@ -3921,7 +3901,7 @@ void RichEdit::SetZoomPercent(uint32_t nZoomPercent)
         int32_t nDen = 63;
         int32_t nNum = (int32_t)(bZoomIn ? ui::CEILF(nZoomPercent * nDen / 100.0f) : (nZoomPercent * nDen / 100.0f));
         while (nNum > 63) {
-            --nDen;            
+            --nDen;
             if (nDen < 1) {
                 nDen = 1;
                 nNum = (int32_t)(bZoomIn ? ui::CEILF(nZoomPercent * nDen / 100.0f) : (nZoomPercent * nDen / 100.0f));

@@ -187,7 +187,8 @@ void Render_GDI::SetClip(const UiRect& rc, bool bIntersect)
                           rc.top + static_cast<int>(m_pPointOrg->Y),
                           rc.Width(), rc.Height());
 
-    m_pGraphics->Save();
+    const Gdiplus::GraphicsState state = m_pGraphics->Save();
+    m_stateStack.push_back(state);
     
     if (bIntersect) {
         m_pGraphics->SetClip(gdipRect, Gdiplus::CombineModeIntersect);
@@ -222,7 +223,8 @@ void Render_GDI::SetRoundClip(const UiRect& rcItem, float rx, float ry, bool bIn
     path.AddArc(arc, 90, 90);
     path.CloseFigure();
 
-    m_pGraphics->Save();
+    const Gdiplus::GraphicsState state = m_pGraphics->Save();
+    m_stateStack.push_back(state);
     
     if (bIntersect) {
         m_pGraphics->SetClip(&path, Gdiplus::CombineModeIntersect);
