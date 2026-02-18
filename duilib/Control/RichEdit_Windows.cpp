@@ -17,6 +17,7 @@
 #include "duilib/Control/Menu.h"
 #include "duilib/Box/VBox.h"
 #include "duilib/Control/Button.h"
+#include <vector>
 
 #if defined (DUILIB_BUILD_FOR_WIN) && !defined (DUILIB_BUILD_FOR_SDL)
 
@@ -2495,6 +2496,9 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
         return;
     }
 
+    // 重置DC的裁剪区，避免复用内存DC时累积上一次的Clip状态
+    ::SelectClipRgn(hDrawDC, nullptr);
+
     //复制渲染引擎源位图数据
     bRet = pRender->ReadPixels(rc, pBitmapBits, rc.Width() * rc.Height() * sizeof(uint32_t));
     ASSERT(bRet);
@@ -2514,15 +2518,28 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
 
 
     constexpr const int32_t nColorBits = sizeof(uint32_t); //每个颜色点所占字节数
+    const int32_t nUpdateWidth = std::max(0, nRight - nLeft);
+    const int32_t nUpdateHeight = std::max(0, nBottom - nTop);
+    std::vector<uint8_t> alphaBackup;
+    if ((nUpdateWidth > 0) && (nUpdateHeight > 0)) {
+        alphaBackup.resize(static_cast<size_t>(nUpdateWidth) * static_cast<size_t>(nUpdateHeight));
+    }
     uint8_t* pRowStart = nullptr; //每行Alpha通道值起始的位置
     uint8_t* pRowEnd = nullptr;   //每行Alpha通道值结束的位置
 
     for (int32_t i = nTop; i < nBottom; ++i) {
+        const int32_t yIndex = i - nTop;
+        uint8_t* pBackupRow = alphaBackup.empty() ? nullptr : (alphaBackup.data() + static_cast<size_t>(yIndex) * static_cast<size_t>(nUpdateWidth));
         pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
         pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
+        int32_t xIndex = 0;
         while (pRowStart < pRowEnd) {
+            if (pBackupRow != nullptr) {
+                pBackupRow[xIndex] = *pRowStart;
+            }
             *pRowStart = 0;
             pRowStart += 4;
+            ++xIndex;
         }
     }
 
@@ -2590,13 +2607,18 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
 
     //恢复Alpha(绘制过程中，会导致绘制区域部分的Alpha通道出现异常)
     for (int32_t i = nTop; i < nBottom; ++i) {
+        const int32_t yIndex = i - nTop;
+        const uint8_t* pBackupRow = alphaBackup.empty() ? nullptr : (alphaBackup.data() + static_cast<size_t>(yIndex) * static_cast<size_t>(nUpdateWidth));
         pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
         pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
+        int32_t xIndex = 0;
         while (pRowStart < pRowEnd) {
             if (*pRowStart == 0) {
-                *pRowStart = 255;
+                // 恢复为绘制前的Alpha值，避免强制设为255导致背景脏块/色点
+                *pRowStart = (pBackupRow != nullptr) ? pBackupRow[xIndex] : 255;
             }
             pRowStart += 4;
+            ++xIndex;
         }
     }
 
