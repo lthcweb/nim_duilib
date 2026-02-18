@@ -2605,7 +2605,9 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
                             0,                  // Call back parameter
                             0);                 // What view of the object
 
-    //恢复Alpha(绘制过程中，会导致绘制区域部分的Alpha通道出现异常)
+    //恢复Alpha(绘制过程中，会导致绘制区域Alpha通道出现异常)
+    //注意：这里不能只恢复为0的像素，部分字体抗锯齿会写入随机/非预期Alpha值，
+    //会在GDI回写后形成杂色、脏块；应整体恢复为绘制前的Alpha。
     for (int32_t i = nTop; i < nBottom; ++i) {
         const int32_t yIndex = i - nTop;
         const uint8_t* pBackupRow = alphaBackup.empty() ? nullptr : (alphaBackup.data() + static_cast<size_t>(yIndex) * static_cast<size_t>(nUpdateWidth));
@@ -2613,10 +2615,7 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
         pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
         int32_t xIndex = 0;
         while (pRowStart < pRowEnd) {
-            if (*pRowStart == 0) {
-                // 恢复为绘制前的Alpha值，避免强制设为255导致背景脏块/色点
-                *pRowStart = (pBackupRow != nullptr) ? pBackupRow[xIndex] : 255;
-            }
+            *pRowStart = (pBackupRow != nullptr) ? pBackupRow[xIndex] : 255;
             pRowStart += 4;
             ++xIndex;
         }
