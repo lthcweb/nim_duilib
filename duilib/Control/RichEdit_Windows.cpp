@@ -2514,47 +2514,44 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
     // 重置DC的裁剪区，避免复用内存DC时累积上一次的Clip状态
     ::SelectClipRgn(hDrawDC, nullptr);
 
-    //复制渲染引擎源位图数据
-    bRet = pRender->ReadPixels(rc, pBitmapBits, rc.Width() * rc.Height() * sizeof(uint32_t));
-    ASSERT(bRet);
-    if (!bRet) {
-        return;
-    }
-
     //更新区域（相对于位图左上角坐标）
     rcUpdate.Offset(-rc.left, -rc.top);
 
-    //清除Alpha通道（标记为全部透明）
+    // 作为常规Edit的稳定绘制路径：先用纯背景色清理更新区域，再由TxDraw绘制文本
+    // 避免透明背景链路下ReadPixels/Alpha修补造成的杂色、残影问题
     const int32_t nTop = std::max(rcUpdate.top, 0);
     const int32_t nBottom = std::min(rcUpdate.bottom, rc.Height());
     const int32_t nLeft = std::max(rcUpdate.left, 0);
     const int32_t nRight = std::min(rcUpdate.right, rc.Width());
     const int32_t nWidth = rc.Width();
-
+    if ((nTop >= nBottom) || (nLeft >= nRight)) {
+        return;
+    }
 
     constexpr const int32_t nColorBits = sizeof(uint32_t); //每个颜色点所占字节数
-    const int32_t nUpdateWidth = std::max(0, nRight - nLeft);
-    const int32_t nUpdateHeight = std::max(0, nBottom - nTop);
-    std::vector<uint8_t> alphaBackup;
-    if ((nUpdateWidth > 0) && (nUpdateHeight > 0)) {
-        alphaBackup.resize(static_cast<size_t>(nUpdateWidth) * static_cast<size_t>(nUpdateHeight));
-    }
     uint8_t* pRowStart = nullptr; //每行Alpha通道值起始的位置
     uint8_t* pRowEnd = nullptr;   //每行Alpha通道值结束的位置
 
+    UiColor bkColor = UiColor(UiColors::White);
+    if (!GetBkColor().empty()) {
+        UiColor c = GetUiColor(GetBkColor());
+        if (!c.IsEmpty()) {
+            bkColor = c;
+        }
+    }
+    const uint8_t bgB = bkColor.GetB();
+    const uint8_t bgG = bkColor.GetG();
+    const uint8_t bgR = bkColor.GetR();
+
     for (int32_t i = nTop; i < nBottom; ++i) {
-        const int32_t yIndex = i - nTop;
-        uint8_t* pBackupRow = alphaBackup.empty() ? nullptr : (alphaBackup.data() + static_cast<size_t>(yIndex) * static_cast<size_t>(nUpdateWidth));
-        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
+        pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits;
         pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
-        int32_t xIndex = 0;
         while (pRowStart < pRowEnd) {
-            if (pBackupRow != nullptr) {
-                pBackupRow[xIndex] = *pRowStart;
-            }
-            *pRowStart = 0;
+            pRowStart[0] = bgB;
+            pRowStart[1] = bgG;
+            pRowStart[2] = bgR;
+            pRowStart[3] = 255;
             pRowStart += 4;
-            ++xIndex;
         }
     }
 
@@ -2620,19 +2617,13 @@ void RichEdit::PaintRichEdit(IRender* pRender, const UiRect& rcPaint)
                             0,                  // Call back parameter
                             0);                 // What view of the object
 
-    //恢复Alpha(绘制过程中，会导致绘制区域Alpha通道出现异常)
-    //注意：这里不能只恢复为0的像素，部分字体抗锯齿会写入随机/非预期Alpha值，
-    //会在GDI回写后形成杂色、脏块；应整体恢复为绘制前的Alpha。
+    // 强制保证更新区alpha为不透明，避免GDI文本抗锯齿在alpha通道留下脏值
     for (int32_t i = nTop; i < nBottom; ++i) {
-        const int32_t yIndex = i - nTop;
-        const uint8_t* pBackupRow = alphaBackup.empty() ? nullptr : (alphaBackup.data() + static_cast<size_t>(yIndex) * static_cast<size_t>(nUpdateWidth));
         pRowStart = (uint8_t*)pBitmapBits + (i * nWidth + nLeft) * nColorBits + 3;
         pRowEnd = (uint8_t*)pBitmapBits + (i * nWidth + nRight) * nColorBits;
-        int32_t xIndex = 0;
         while (pRowStart < pRowEnd) {
-            *pRowStart = (pBackupRow != nullptr) ? pBackupRow[xIndex] : 255;
+            *pRowStart = 255;
             pRowStart += 4;
-            ++xIndex;
         }
     }
 
