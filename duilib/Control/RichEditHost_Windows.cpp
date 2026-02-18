@@ -518,7 +518,10 @@ HRESULT RichEditHost::TxGetClientRect(LPRECT prc)
     if (prc != nullptr) {
         UiRect rcTemp = m_rcClient;
         GetControlRect(&rcTemp);
-        *prc = { rcTemp.left, rcTemp.top, rcTemp.right, rcTemp.bottom };
+
+        // TxDraw在离屏DC(原点为0,0)绘制时，TextServices内部坐标也必须使用局部坐标。
+        // 返回{0,0,w,h}可避免多行文本场景下坐标系不一致造成的错位和脏点。
+        *prc = { 0, 0, rcTemp.Width(), rcTemp.Height() };
     }
     return NOERROR;
 }
